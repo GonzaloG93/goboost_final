@@ -2,19 +2,38 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 
-// Configuración JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_key_here_change_in_production';
 
-// ✅ FUNCIÓN PARA GENERAR TOKEN SIN EXPIRACIÓN
+// ✅ Verificar reCAPTCHA con Google
+const verifyRecaptcha = async (token) => {
+  try {
+    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+    if (!secretKey) {
+      console.warn('⚠️ RECAPTCHA_SECRET_KEY no configurada');
+      return false;
+    }
+
+    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `secret=${secretKey}&response=${token}`
+    });
+
+    const data = await response.json();
+    console.log('🤖 reCAPTCHA result:', data);
+    return data.success === true;
+  } catch (error) {
+    console.error('❌ Error verificando reCAPTCHA:', error);
+    return false;
+  }
+};
+
+// ✅ Generar token JWT
 const generateToken = (userId, username, role) => {
   return jwt.sign(
-    { 
-      id: userId,
-      username: username,
-      role: role 
-    },
-    JWT_SECRET
-    // ❌ SIN expiresIn - Token que nunca expira
+    { id: userId, username, role },
+    JWT_SECRET,
+    { expiresIn: '30d' }
   );
 };
 
@@ -22,10 +41,10 @@ const generateToken = (userId, username, role) => {
 export const login = async (req, res) => {
   try {
     console.log('🔐 Login attempt:', req.body.email);
-    
-    const { email, password } = req.body;
 
-    // Validar entrada
+    const { email, password, captchaToken } = req.body;
+
+    // Validar campos requeridos
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -33,9 +52,25 @@ export const login = async (req, res) => {
       });
     }
 
+    // Verificar reCAPTCHA
+    if (!captchaToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verificación de seguridad requerida'
+      });
+    }
+
+    const isHuman = await verifyRecaptcha(captchaToken);
+    if (!isHuman) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verificación de seguridad fallida'
+      });
+    }
+
     // Buscar usuario
     const user = await User.findOne({ email });
-    
+
     if (!user) {
       console.log('❌ User not found:', email);
       return res.status(401).json({
@@ -46,7 +81,7 @@ export const login = async (req, res) => {
 
     // Verificar contraseña
     const isPasswordValid = await user.correctPassword(password);
-    
+
     if (!isPasswordValid) {
       console.log('❌ Invalid password for user:', email);
       return res.status(401).json({
@@ -55,14 +90,9 @@ export const login = async (req, res) => {
       });
     }
 
-    // ✅ Generar token SIN expiración
     const token = generateToken(user._id, user.username, user.role);
-    
-    console.log('✅ Login successful:', {
-      userId: user._id,
-      email: user.email,
-      role: user.role
-    });
+
+    console.log('✅ Login successful:', { userId: user._id, email: user.email, role: user.role });
 
     res.json({
       success: true,
@@ -91,10 +121,10 @@ export const login = async (req, res) => {
 export const register = async (req, res) => {
   try {
     console.log('📝 Register attempt:', req.body.email);
-    
-    const { username, email, password, name } = req.body;
 
-    // Validaciones básicas
+    const { username, email, password, name, captchaToken } = req.body;
+
+    // Validar campos requeridos
     if (!username || !email || !password || !name) {
       return res.status(400).json({
         success: false,
@@ -102,9 +132,25 @@ export const register = async (req, res) => {
       });
     }
 
+    // Verificar reCAPTCHA
+    if (!captchaToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verificación de seguridad requerida'
+      });
+    }
+
+    const isHuman = await verifyRecaptcha(captchaToken);
+    if (!isHuman) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verificación de seguridad fallida'
+      });
+    }
+
     // Verificar si el usuario ya existe
-    const existingUser = await User.findOne({ 
-      $or: [{ email }, { username }] 
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }]
     });
 
     if (existingUser) {
@@ -121,17 +167,12 @@ export const register = async (req, res) => {
       email,
       password,
       name,
-      role: 'customer' // Rol por defecto
+      role: 'customer'
     });
 
-    // ✅ Generar token SIN expiración
     const token = generateToken(user._id, user.username, user.role);
-    
-    console.log('✅ User registered:', {
-      userId: user._id,
-      email: user.email,
-      username: user.username
-    });
+
+    console.log('✅ User registered:', { userId: user._id, email: user.email, username: user.username });
 
     res.status(201).json({
       success: true,
@@ -150,14 +191,14 @@ export const register = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Registration error:', error);
-    
+
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
         message: 'El email o nombre de usuario ya existen'
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Error en el servidor',
@@ -170,10 +211,9 @@ export const register = async (req, res) => {
 export const getCurrentUser = async (req, res) => {
   try {
     console.log('👤 Getting current user:', req.user?.id);
-    
-    // El usuario ya está autenticado por el middleware
+
     const user = await User.findById(req.user._id).select('-password');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -207,14 +247,10 @@ export const getCurrentUser = async (req, res) => {
   }
 };
 
-// ✅ LOGOUT (si es necesario)
+// ✅ LOGOUT
 export const logout = async (req, res) => {
   try {
     console.log('👋 Logout user:', req.user?.id);
-    
-    // En esta implementación simple, el logout es manejado por el frontend
-    // eliminando el token del localStorage
-    
     res.json({
       success: true,
       message: 'Sesión cerrada exitosamente'
@@ -236,11 +272,7 @@ export const updateProfile = async (req, res) => {
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { 
-        username,
-        name,
-        games: games || []
-      },
+      { username, name, games: games || [] },
       { new: true, runValidators: true }
     ).select('-password');
 
@@ -251,21 +283,15 @@ export const updateProfile = async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      user: updatedUser
-    });
+    res.json({ success: true, user: updatedUser });
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'El nombre de usuario ya existe' 
+        message: 'El nombre de usuario ya existe'
       });
     }
-    res.status(400).json({ 
-      success: false,
-      message: error.message 
-    });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
