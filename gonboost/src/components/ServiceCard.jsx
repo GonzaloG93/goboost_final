@@ -1,26 +1,22 @@
-// ServiceCard v2 - fix routing
+// ServiceCard v2 - fix routing (SIN REVIEWS FALSAS)
 
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from '../i18n';
 import { generateServiceSlug } from '../utils/urlHelpers';
-import { FaClock, FaStar, FaEye, FaShoppingCart, FaCheck, FaGamepad } from 'react-icons/fa';
+import { FaClock, FaEye, FaShoppingCart, FaCheck, FaGamepad } from 'react-icons/fa';
 
 const ServiceCard = ({ service }) => {
   // ✅ Obtener el ID del servicio de forma segura
- const serviceId = service["_id"]?.toString() || service["id"]?.toString();
+  const serviceId = service["_id"]?.toString() || service["id"]?.toString();
   
   const { i18n } = useTranslation();
   const currentLang = i18n.language;
   const prefix = currentLang === DEFAULT_LANGUAGE ? '' : `/${currentLang}`;
   
-  const serviceSlug = serviceId ? generateServiceSlug(service) : '#'; // Si no hay ID, no navegar
+  const serviceSlug = serviceId ? generateServiceSlug(service) : '#';
   const price = service.basePrice || service.price || 0;
-  
-  // ✅ Calcular rating simulado
-  const rating = service.popularity ? Math.min(5, Math.ceil(service.popularity / 20)) : 4.5;
-  const reviewCount = service.popularity ? service.popularity * 10 : 1243;
 
   // ✅ Obtener color del juego
   const getGameColor = (game) => {
@@ -72,19 +68,6 @@ const ServiceCard = ({ service }) => {
             <FaGamepad className="text-cyan-400" />
             {service.game}
           </span>
-          
-          {/* Rating */}
-          <div className="flex items-center gap-1">
-            <div className="flex items-center">
-              {[...Array(5)].map((_, i) => (
-                <FaStar 
-                  key={i} 
-                  className={`text-xs ${i < Math.floor(rating) ? 'text-yellow-400' : 'text-gray-600'}`} 
-                />
-              ))}
-            </div>
-            <span className="text-gray-400 text-xs ml-1">({reviewCount})</span>
-          </div>
         </div>
 
         {/* Service Name */}
@@ -132,7 +115,7 @@ const ServiceCard = ({ service }) => {
           )}
         </div>
 
-        {/* Action Buttons - PROTEGIDOS CONTRA ID FALTANTE */}
+        {/* Action Buttons */}
         <div className="flex gap-2">
           <Link
             to={serviceId ? `${prefix}/service/${serviceSlug}` : '#'}
