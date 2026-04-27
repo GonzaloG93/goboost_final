@@ -9,9 +9,14 @@ Allow: /
 Sitemap: https://gonboost.com/sitemap.xml
 Sitemap: https://gonboost.com/sitemap-index.xml
 
+
 # --- Bloqueos de Seguridad y Áreas Privadas ---
 # Bloquear el panel de administración (no debe ser público)
 Disallow: /admin/
+Disallow: /api/
+Disallow: /*.env
+Disallow: /*.json
+Disallow: /.git/
 
 # Bloquear acceso a la API y rutas del servidor
 Disallow: /api/
@@ -33,10 +38,12 @@ Disallow: /checkout/
 Disallow: /payment/
 Disallow: /paypal/
 
+
+Crawl-delay: 2
 # --- Parámetros de Rastreo ---
 # Retraso entre peticiones (útil para no saturar el servidor)
 # Nota: Google ignora esto, pero Yandex y Bing lo respetan
-Crawl-delay: 1
+Crawl-delay: 2
 
 # --- Sitemaps específicos por idioma (Opcional) ---
 # Si en el futuro creas sitemaps individuales, puedes añadirlos aquí.
