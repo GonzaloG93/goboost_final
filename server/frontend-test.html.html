@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prueba BoostPro Frontend</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .success { color: green; }
+        .error { color: red; }
+        .loading { color: blue; }
+        .card { border: 1px solid #ddd; padding: 20px; margin: 10px 0; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Prueba de Conexión BoostPro Frontend</h1>
+    
+    <button onclick="testConnection()">Probar Conexión Backend</button>
+    <button onclick="testCORS()">Probar CORS</button>
+    <button onclick="getServices()">Obtener Servicios</button>
+    
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        const resultDiv = document.getElementById('result');
+
+        async function testConnection() {
+            showLoading('Probando conexión con backend...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                showSuccess(`
+                    <h3>✅ Backend Conectado</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `);
+            } catch (error) {
+                showError(`❌ Error: ${error.message}`);
+            }
+        }
+
+        async function testCORS() {
+            showLoading('Probando CORS...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/test-frontend`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                showSuccess(`
+                    <h3>✅ CORS Funcionando</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `);
+            } catch (error) {
+                showError(`❌ Error CORS: ${error.message}`);
+            }
+        }
+
+        async function getServices() {
+            showLoading('Cargando servicios...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/services`);
+                const data = await response.json();
+                
+                const servicesHTML = data.services.map(service => `
+                    <div class="card">
+                        <h4>${service.name}</h4>
+                        <p>Juego: ${service.game}</p>
+                        <p>Precio: $${service.price}</p>
+                        <p>Tiempo: ${service.estimatedTime}</p>
+                    </div>
+                `).join('');
+                
+                showSuccess(`
+                    <h3>✅ Servicios Cargados</h3>
+                    ${servicesHTML}
+                `);
+            } catch (error) {
+                showError(`❌ Error cargando servicios: ${error.message}`);
+            }
+        }
+
+        function showLoading(message) {
+            resultDiv.innerHTML = `<div class="loading">⏳ ${message}</div>`;
+        }
+
+        function showSuccess(html) {
+            resultDiv.innerHTML = `<div class="success">${html}</div>`;
+        }
+
+        function showError(message) {
+            resultDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        // Probar automáticamente al cargar
+        testConnection();
+    </script>
+</body>
+</html>

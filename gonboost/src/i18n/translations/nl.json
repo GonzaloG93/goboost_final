@@ -1,0 +1,561 @@
+{
+  "seo": {
+    "defaultTitle": "Gonboost - Professionele Boosting Diensten voor Gamers",
+    "defaultDescription": "Verbeter je rang in Diablo 4, World of Warcraft, Path of Exile en meer. Veilige, snelle en professionele boosting diensten met geverifieerde boosters 24/7.",
+    "keywords": "boosting, elo boost, diablo 4 boost, wow boost, path of exile boost, rang verbeteren, gaming diensten, gonboost",
+    "ogTitle": "Gonboost - Professioneel Boosting voor Gamers",
+    "ogDescription": "Veilige en professionele boosting diensten. 24/7 Support, geverifieerde boosters, concurrerende prijzen.",
+    "home": {
+      "title": "Gonboost - Professionele Boosting Diensten voor Gamers",
+      "description": "Verbeter je game-ervaring met Gonboost. Boosting diensten voor Diablo 4, World of Warcraft, Path of Exile en meer. Geverifieerde professionele boosters 24/7."
+    },
+    "services": {
+      "title": "Boosting Diensten - Gonboost",
+      "titleSuffix": "Boosting Diensten",
+      "description": "Professionele boosting diensten voor Diablo 4, WoW, PoE en meer. Verbeter je rang met de beste boosters op de markt.",
+      "descriptionPrefix": "Professionele boosting diensten voor",
+      "descriptionSuffix": "Verbeter je personage met geverifieerde boosters."
+    },
+    "serviceDetail": {
+      "title": "{{serviceName}} - {{game}} Boosting | Gonboost",
+      "description": "{{serviceName}} voor {{game}}. Professionele boosting dienst met geverifieerde boosters. Snel, veilig en betrouwbaar.",
+      "priceFrom": "Prijs vanaf",
+      "fastDelivery": "Snelle en veilige levering."
+    }
+  },
+  "common": {
+    "welcome": "Welkom",
+    "login": "Inloggen",
+    "logout": "Uitloggen",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "create": "Aanmaken",
+    "update": "Bijwerken",
+    "services": "Diensten",
+    "orders": "Bestellingen",
+    "dashboard": "Dashboard",
+    "users": "Gebruikers",
+    "loading": "Laden...",
+    "error": "Fout",
+    "success": "Succes",
+    "confirm": "Bevestigen",
+    "back": "Terug",
+    "next": "Volgende",
+    "submit": "Verzenden",
+    "search": "Zoeken",
+    "filter": "Filteren",
+    "clear": "Wissen",
+    "close": "Sluiten",
+    "open": "Openen",
+    "view": "Bekijken",
+    "buy": "Nu Kopen",
+    "order": "Nu Bestellen",
+    "contact": "Contact",
+    "support": "Support",
+    "retry": "Opnieuw",
+    "price": "Prijs",
+    "usd": "USD",
+    "eur": "EUR",
+    "total": "Totaal",
+    "subtotal": "Subtotaal",
+    "discount": "Korting",
+    "apply": "Toepassen",
+    "promoCode": "Promocode",
+    "remove": "Verwijderen",
+    "add": "Toevoegen",
+    "continue": "Doorgaan",
+    "checkout": "Afrekenen",
+    "payNow": "Nu Betalen",
+    "processing": "Verwerken...",
+    "completed": "Voltooid",
+    "pending": "In Afwachting",
+    "failed": "Mislukt",
+    "refunded": "Terugbetaald"
+  },
+  "navigation": {
+    "home": "Home",
+    "services": "Diensten",
+    "myOrders": "Mijn Bestellingen",
+    "support": "Support",
+    "account": "Account",
+    "dashboard": "Dashboard",
+    "myProfile": "Mijn Profiel",
+    "boosterPanel": "Booster Paneel",
+    "adminPanel": "Admin Paneel",
+    "logout": "Uitloggen",
+    "login": "Inloggen",
+    "register": "Registreren",
+    "getBoosted": "BOOST NU!",
+    "cart": "Winkelwagen",
+    "checkout": "Afrekenen"
+  },
+  "languages": {
+    "english": "Engels",
+    "spanish": "Spaans",
+    "portuguese": "Portugees",
+    "russian": "Russisch",
+    "german": "Duits",
+    "french": "Frans",
+    "dutch": "Nederlands"
+  },
+  "home": {
+    "hero": {
+      "unlock": "ONTGRENDEL JE",
+      "potential": "WARE POTENTIEEL",
+      "description": "Transformeer je game-ervaring met onze premium boosting service.",
+      "cta1": "ONDERSTEUNDE GAMES",
+      "cta2": "MEER INFORMATIE"
+    },
+    "features": {
+      "title": "WAAROM KIEZEN VOOR GONBOOST",
+      "subtitle": "Verschillen die de premium ervaring definiëren",
+      "quote": "\"Meer dan alleen een boosting service. Achter elke bestelling staat een toewijding aan excellentie, veiligheid en klanttevredenheid. We begrijpen de passie en toewijding van gamers, en we zetten ons in om je de game-ervaring te bieden die je verdient.\"",
+      "elite": {
+        "title": "Go&boost Boosters",
+        "description": "We werken alleen met de beste, zorgvuldig geselecteerde boosters die hun vaardigheden en betrouwbaarheid hebben bewezen door duizenden succesvolle bestellingen."
+      },
+      "privacy": {
+        "title": "Totale Privacy",
+        "description": "Je verbinding en gegevens zijn altijd versleuteld en veilig. Volledig anoniem en veilig proces."
+      },
+      "express": {
+        "title": "Express Service",
+        "description": "We voltooien je bestelling in recordtijd, geen bots, geen cheats. Alleen echte pro-spelers die je account boosten."
+      },
+      "premium": {
+        "title": "Premium Ervaring",
+        "description": "Toegewijde ondersteuning en realtime updates. Niet tevreden? We bieden volledige terugbetaling, zonder vragen."
+      }
+    },
+    "franchises": {
+      "diablo": "Diablo Universum",
+      "warcraft": "Warcraft Universum",
+      "premium": "Premium Titels"
+    },
+    "games": {
+      "title1": "PREMIUM",
+      "title2": "GAMES",
+      "subtitle": "Verken onze exclusieve franchises en titels",
+      "allGames": "Alle Games",
+      "selected": "GESELECTEERD",
+      "boostingServices": "boosting diensten",
+      "clickInstruction": "Klik op een game om de exclusieve boosting diensten te verkennen",
+      "viewAll": "BEKIJK ALLE GAMES & DIENSTEN"
+    },
+    "services": {
+      "title": "DIENSTEN",
+      "featured": "UITGELICHT",
+      "exploreFranchise": "Verken alle {{franchise}} boosting diensten",
+      "premiumFor": "Premium boosting diensten voor {{game}}",
+      "glimpse": "Een glimp van onze premium aanbiedingen",
+      "clearAll": "Alles Wissen",
+      "unavailable": "DIENSTEN TIJDELIJK NIET BESCHIKBAAR",
+      "errorMessage": "We hebben problemen met de verbinding met onze diensten. Probeer het later opnieuw.",
+      "tryAgain": "OPNIEUW PROBEREN",
+      "noServices": "GEEN DIENSTEN GEVONDEN",
+      "noServicesAvailable": "Er zijn momenteel geen diensten beschikbaar.",
+      "tryDifferentFilters": "Probeer verschillende filters om onze exclusieve aanbiedingen te ontdekken",
+      "viewAllServices": "BEKIJK ALLE DIENSTEN",
+      "estimated": "Geschat",
+      "orderNow": "NU BESTELLEN"
+    }
+  },
+  "servicesPage": {
+    "title": "Onze Diensten",
+    "subtitle": "Kies uit ons brede aanbod aan professionele boosting diensten",
+    "hero": {
+      "line1": "JOUW GAME,",
+      "line2": "JOUW REGELS",
+      "subtitle": "Professionele boosting diensten op maat van jouw behoeften. Snel, veilig en altijd betrouwbaar.",
+      "browseButton": "Diensten Bekijken",
+      "customButton": "Aangepaste Bestelling"
+    },
+    "filters": {
+      "allGames": "Alle Games",
+      "allTypes": "Alle Types",
+      "searchPlaceholder": "Zoek op naam, game of type...",
+      "moreGames": "Meer games...",
+      "allFor": "Alle",
+      "types": "types",
+      "allServiceTypes": "Alle diensttypes",
+      "showing": "Toont",
+      "of": "van",
+      "services": "diensten",
+      "clearFilters": "Filters wissen",
+      "loadMore": "Meer Laden",
+      "remaining": "resterend",
+      "serviceAvailable": "DIENST BESCHIKBAAR",
+      "servicesAvailable": "DIENSTEN BESCHIKBAAR",
+      "for": "VOOR"
+    },
+    "categories": {
+      "all": "Alle Types",
+      "ranked": "Ranked Boost",
+      "placement": "Plaatsing",
+      "coaching": "Coaching",
+      "wins": "Winst Boost",
+      "arena": "Arena",
+      "duo": "Duo Queue",
+      "leveling": "Leveling",
+      "builds": "Builds",
+      "bundles": "Bundels",
+      "content": "Inhoud",
+      "farming": "Farming",
+      "pvp": "PvP",
+      "competitive": "Competitief"
+    },
+    "card": {
+      "startingAt": "Vanaf",
+      "orderNow": "Nu Bestellen",
+      "learnMore": "Meer Info"
+    },
+    "noServicesFound": "Geen diensten gevonden",
+    "noServicesAvailable": "Er zijn momenteel geen diensten beschikbaar.",
+    "noMatchFilters": "Geen diensten komen overeen met je filters. Pas je zoekcriteria aan.",
+    "customNeedsTitle1": "IETS",
+    "customNeedsTitle2": "AANGEPAST NODIG?",
+    "customNeedsDescription": "Kun je niet precies vinden wat je zoekt? Neem contact met ons op voor een persoonlijke service.",
+    "backToHome": "TERUG NAAR HOME",
+    "customService": "AANGEPASTE SERVICE"
+  },
+  "serviceDetail": {
+    "notFound": "Dienst Niet Gevonden",
+    "browseAllServices": "Blader Door Alle Diensten",
+    "breadcrumb": {
+      "home": "Home",
+      "services": "Diensten"
+    },
+    "backToServices": "Terug naar Alle Diensten",
+    "startingAt": "Vanaf",
+    "orderNow": "Nu Bestellen",
+    "whatsIncluded": "Wat is Inbegrepen",
+    "requirements": "Vereisten",
+    "whyChoose": "Waarom Gonboost Kiezen?",
+    "readyToStart": "Klaar om te Beginnen?",
+    "readyDesc": "Sla de grind over en ga direct naar het plezier.",
+    "moreFrom": "Meer van",
+    "viewDetails": "Details Bekijken",
+    "reviews": "beoordelingen",
+    "reviewsCount": "4.9/5 ({{count}} beoordelingen)",
+    "completionRate": "Voltooiingspercentage",
+    "ordersCompleted": "Voltooide Bestellingen",
+    "customerRating": "Klantbeoordeling",
+    "supportAvailable": "Support Beschikbaar",
+    "faq": {
+      "title": "Veelgestelde Vragen",
+      "howLong": "Hoe lang duurt {{serviceName}}?",
+      "howLongAnswer": "Meestal {{time}}, afhankelijk van de huidige en gewenste rang.",
+      "isSafe": "Is account delen veilig?",
+      "isSafeAnswer": "Ja! We gebruiken premium VPN's en SSL-encryptie. De veiligheid van je account is onze topprioriteit.",
+      "canPlay": "Kan ik spelen terwijl jullie boosten?",
+      "canPlayAnswer": "We raden aan om niet in te loggen op je account tijdens de boost om conflicten of vertragingen te voorkomen.",
+      "guarantee": "Wat als er iets misgaat?",
+      "guaranteeAnswer": "We bieden 100% tevredenheidsgarantie. Als je niet tevreden bent, lossen we het op of krijg je je geld terug.",
+      "payment": "Is mijn betaling veilig?",
+      "paymentAnswer": "Absoluut. We gebruiken PayPal en Stripe voor veilige betalingsverwerking. Je financiële gegevens worden nooit op onze servers opgeslagen."
+    },
+    "guarantees": {
+      "secure": {
+        "title": "100% Veilig",
+        "desc": "SSL-encryptie en VPN-bescherming"
+      },
+      "support": {
+        "title": "24/7 Support",
+        "desc": "Altijd hier om te helpen"
+      },
+      "fast": {
+        "title": "Snelle Afhandeling",
+        "desc": "Geschatte tijd: {{time}}"
+      },
+      "refund": {
+        "title": "Geld Terug Garantie",
+        "desc": "Volledige terugbetaling bij ontevredenheid"
+      }
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Log in op je Account",
+      "subtitle": "Welkom terug! Voer je gegevens in.",
+      "username": "Gebruikersnaam",
+      "password": "Wachtwoord",
+      "rememberMe": "Onthoud mij",
+      "forgotPassword": "Wachtwoord vergeten?",
+      "submit": "Inloggen",
+      "noAccount": "Nog geen account?",
+      "register": "Registreren",
+      "orContinueWith": "Of ga verder met"
+    },
+    "register": {
+      "title": "Maak je Account aan",
+      "subtitle": "Word lid van Gonboost en begin vandaag nog met boosten!",
+      "username": "Gebruikersnaam",
+      "email": "E-mail",
+      "password": "Wachtwoord",
+      "confirmPassword": "Bevestig Wachtwoord",
+      "submit": "Account Aanmaken",
+      "haveAccount": "Heb je al een account?",
+      "login": "Inloggen",
+      "terms": "Ik ga akkoord met de",
+      "termsLink": "Algemene Voorwaarden",
+      "and": "en het",
+      "privacyLink": "Privacybeleid"
+    },
+    "forgotPassword": {
+      "title": "Wachtwoord Opnieuw Instellen",
+      "subtitle": "Voer je e-mailadres in en we sturen je een resetlink.",
+      "email": "E-mail",
+      "submit": "Resetlink Versturen",
+      "backToLogin": "Terug naar Inloggen"
+    },
+    "resetPassword": {
+      "title": "Nieuw Wachtwoord Instellen",
+      "newPassword": "Nieuw Wachtwoord",
+      "confirmPassword": "Bevestig Nieuw Wachtwoord",
+      "submit": "Wachtwoord Opnieuw Instellen"
+    },
+    "errors": {
+      "invalidCredentials": "Ongeldige gebruikersnaam of wachtwoord",
+      "usernameRequired": "Gebruikersnaam is verplicht",
+      "passwordRequired": "Wachtwoord is verplicht",
+      "emailRequired": "E-mail is verplicht",
+      "emailInvalid": "Voer een geldig e-mailadres in",
+      "passwordMatch": "Wachtwoorden moeten overeenkomen",
+      "passwordLength": "Wachtwoord moet minimaal 6 tekens bevatten"
+    }
+  },
+  "orders": {
+    "title": "Mijn Bestellingen",
+    "subtitle": "Volg en beheer je boosting bestellingen",
+    "noOrders": "Geen bestellingen gevonden",
+    "orderNumber": "Bestelling #{{number}}",
+    "status": {
+      "pending": "In Afwachting",
+      "processing": "In Behandeling",
+      "inProgress": "In Uitvoering",
+      "completed": "Voltooid",
+      "cancelled": "Geannuleerd"
+    },
+    "details": {
+      "service": "Dienst",
+      "game": "Spel",
+      "price": "Prijs",
+      "date": "Besteldatum",
+      "estimatedCompletion": "Geschatte Voltooiing",
+      "booster": "Toegewezen Booster",
+      "progress": "Voortgang"
+    },
+    "actions": {
+      "viewDetails": "Details Bekijken",
+      "contactBooster": "Contact Booster",
+      "cancelOrder": "Bestelling Annuleren"
+    }
+  },
+  "support": {
+    "title": "Support Center",
+    "subtitle": "We zijn er 24/7 om je te helpen",
+    "newTicket": "Nieuw Support Ticket",
+    "myTickets": "Mijn Tickets",
+    "subject": "Onderwerp",
+    "message": "Bericht",
+    "category": "Categorie",
+    "priority": "Prioriteit",
+    "submit": "Ticket Verzenden",
+    "categories": {
+      "general": "Algemene Vraag",
+      "order": "Probleem met Bestelling",
+      "payment": "Probleem met Betaling",
+      "technical": "Technische Support",
+      "other": "Overig"
+    },
+    "priorities": {
+      "low": "Laag",
+      "medium": "Gemiddeld",
+      "high": "Hoog",
+      "urgent": "Urgent"
+    },
+    "chat": {
+      "title": "Live Chat",
+      "online": "We zijn online!",
+      "offline": "We zijn offline",
+      "startChat": "Start Chat",
+      "typing": "Typt...",
+      "placeholder": "Typ je bericht..."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welkom terug, {{name}}!",
+    "stats": {
+      "totalOrders": "Totaal Bestellingen",
+      "activeOrders": "Actieve Bestellingen",
+      "completedOrders": "Voltooide Bestellingen",
+      "totalSpent": "Totaal Uitgegeven"
+    },
+    "recentOrders": "Recente Bestellingen",
+    "quickActions": "Snelle Acties",
+    "actions": {
+      "newOrder": "Nieuwe Bestelling",
+      "viewServices": "Diensten Bekijken",
+      "contactSupport": "Contact Support"
+    }
+  },
+  "boosterPanel": {
+    "title": "Booster Dashboard",
+    "welcome": "Welkom, {{name}}!",
+    "stats": {
+      "assignedOrders": "Toegewezen Opdrachten",
+      "completedThisMonth": "Deze Maand Voltooid",
+      "earnings": "Verdiensten",
+      "rating": "Beoordeling"
+    },
+    "orders": {
+      "available": "Beschikbare Opdrachten",
+      "myOrders": "Mijn Opdrachten",
+      "claim": "Opdracht Claimen",
+      "start": "Opdracht Starten",
+      "complete": "Markeer als Voltooid",
+      "reportIssue": "Probleem Melden"
+    },
+    "earnings": {
+      "title": "Verdiensten",
+      "pending": "In Afwachting van Uitbetaling",
+      "paid": "Uitbetaald",
+      "requestPayout": "Uitbetaling Aanvragen"
+    }
+  },
+  "admin": {
+    "title": "Admin Paneel",
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "orders": "Bestellingen",
+      "users": "Gebruikers",
+      "services": "Diensten",
+      "tickets": "Support Tickets",
+      "payments": "Betalingen",
+      "boosters": "Boosters",
+      "settings": "Instellingen"
+    },
+    "dashboard": {
+      "totalRevenue": "Totale Omzet",
+      "activeOrders": "Actieve Bestellingen",
+      "newUsers": "Nieuwe Gebruikers",
+      "openTickets": "Open Tickets",
+      "recentActivity": "Recente Activiteit"
+    },
+    "orders": {
+      "title": "Bestellingen Beheren",
+      "allOrders": "Alle Bestellingen",
+      "filterByStatus": "Filter op Status",
+      "assignBooster": "Booster Toewijzen",
+      "updateStatus": "Status Bijwerken",
+      "refund": "Terugbetaling Verwerken"
+    },
+    "users": {
+      "title": "Gebruikers Beheren",
+      "allUsers": "Alle Gebruikers",
+      "filterByRole": "Filter op Rol",
+      "roles": {
+        "customer": "Klant",
+        "booster": "Booster",
+        "admin": "Beheerder"
+      },
+      "actions": {
+        "editRole": "Rol Bewerken",
+        "banUser": "Gebruiker Blokkeren",
+        "deleteUser": "Gebruiker Verwijderen"
+      }
+    },
+    "services": {
+      "title": "Diensten Beheren",
+      "addService": "Nieuwe Dienst Toevoegen",
+      "editService": "Dienst Bewerken",
+      "deleteService": "Dienst Verwijderen",
+      "fields": {
+        "name": "Dienstnaam",
+        "game": "Spel",
+        "type": "Diensttype",
+        "price": "Basisprijs",
+        "description": "Beschrijving",
+        "available": "Beschikbaar",
+        "featured": "Uitgelicht"
+      }
+    },
+    "tickets": {
+      "title": "Support Tickets",
+      "openTickets": "Open Tickets",
+      "closedTickets": "Gesloten Tickets",
+      "assignTo": "Toewijzen Aan",
+      "reply": "Antwoorden",
+      "close": "Ticket Sluiten"
+    },
+    "payments": {
+      "title": "Betalingsbeheer",
+      "transactions": "Transacties",
+      "payouts": "Booster Uitbetalingen",
+      "refunds": "Terugbetalingen",
+      "methods": {
+        "paypal": "PayPal",
+        "stripe": "Stripe",
+        "crypto": "Cryptovaluta"
+      }
+    },
+    "settings": {
+      "title": "Instellingen",
+      "general": "Algemene Instellingen",
+      "payment": "Betalingsinstellingen",
+      "email": "E-mailsjablonen",
+      "seo": "SEO Instellingen"
+    },
+    "errors": {
+      "loadServices": "Fout bij laden diensten: ",
+      "missingFields": "Vereiste velden ontbreken: "
+    }
+  },
+  "errors": {
+    "notFound": "Services endpoint niet gevonden. Controleer backend routes.",
+    "404": {
+      "title": "Pagina Niet Gevonden",
+      "message": "De pagina die je zoekt bestaat niet of is verplaatst.",
+      "goBack": "Terug",
+      "goHome": "Naar Home"
+    },
+    "500": {
+      "title": "Server Fout",
+      "message": "Er is iets misgegaan. Probeer het later opnieuw."
+    },
+    "network": {
+      "title": "Netwerk Fout",
+      "message": "Kan geen verbinding maken met de server. Controleer je internetverbinding."
+    },
+    "unauthorized": {
+      "title": "Geen Toegang",
+      "message": "Je hebt geen toestemming om deze pagina te bekijken."
+    },
+    "sessionExpired": {
+      "title": "Sessie Verlopen",
+      "message": "Je sessie is verlopen. Log opnieuw in."
+    }
+  },
+  "footer": {
+    "copyright": "© 2024 Gonboost. Alle rechten voorbehouden.",
+    "terms": "Algemene Voorwaarden",
+    "privacy": "Privacybeleid",
+    "refund": "Terugbetalingsbeleid",
+    "contact": "Contact",
+    "about": "Over Ons",
+    "faq": "FAQ"
+  },
+  "games": {
+    "diablo4": "Diablo 4",
+    "diablo3": "Diablo 3",
+    "diablo2": "Diablo 2 Resurrected",
+    "wow": "World of Warcraft",
+    "wowClassic": "World of Warcraft Classic",
+    "poe": "Path of Exile",
+    "poe2": "Path of Exile 2",
+    "lastEpoch": "Last Epoch"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "gonboost-aws",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "GonBoost Platform - AWS Elastic Beanstalk Deployment",
+  "keywords": [
+    "boosting",
+    "gaming",
+    "valorant",
+    "league-of-legends",
+    "mern",
+    "aws",
+    "elastic-beanstalk"
+  ],
+  "author": "GonBoost Team",
+  "license": "MIT",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "build": "cd frontend && npm install && npm run build",
+    "postinstall": "cd backend && npm install --production",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "deploy": "npm run build && echo 'Ready for EB deployment'",
+    "eb:init": "eb init gonboost --platform node.js --region us-east-2",
+    "eb:create": "eb create gonboost-prod --envvars NODE_ENV=production",
+    "eb:deploy": "eb deploy",
+    "eb:status": "eb status",
+    "eb:logs": "eb logs"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "git": "^0.1.5"
+  }
+}

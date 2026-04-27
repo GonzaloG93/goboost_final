@@ -1,0 +1,561 @@
+{
+  "seo": {
+    "defaultTitle": "Gonboost - Serviços Profissionais de Boosting para Gamers",
+    "defaultDescription": "Melhore seu rank em Diablo 4, World of Warcraft, Path of Exile e mais. Serviços de boosting seguros, rápidos e profissionais com boosters verificados 24/7.",
+    "keywords": "boosting, elo boost, diablo 4 boost, wow boost, path of exile boost, melhorar rank, serviços gaming, gonboost",
+    "ogTitle": "Gonboost - Boosting Profissional para Gamers",
+    "ogDescription": "Serviços de boosting seguros e profissionais. Suporte 24/7, boosters verificados, preços competitivos.",
+    "home": {
+      "title": "Gonboost - Serviços Profissionais de Boosting para Gamers",
+      "description": "Melhore sua experiência de jogo com Gonboost. Serviços de boosting para Diablo 4, World of Warcraft, Path of Exile e mais. Boosters profissionais verificados 24/7."
+    },
+    "services": {
+      "title": "Serviços de Boosting - Gonboost",
+      "titleSuffix": "Serviços de Boosting",
+      "description": "Serviços profissionais de boosting para Diablo 4, WoW, PoE e mais. Melhore seu rank com os melhores boosters do mercado.",
+      "descriptionPrefix": "Serviços profissionais de boosting para",
+      "descriptionSuffix": "Melhore seu personagem com boosters verificados."
+    },
+    "serviceDetail": {
+      "title": "{{serviceName}} - {{game}} Boosting | Gonboost",
+      "description": "{{serviceName}} para {{game}}. Serviço profissional de boosting com boosters verificados. Rápido, seguro e confiável.",
+      "priceFrom": "Preço a partir de",
+      "fastDelivery": "Entrega rápida e segura."
+    }
+  },
+  "common": {
+    "welcome": "Bem-vindo",
+    "login": "Entrar",
+    "logout": "Sair",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "create": "Criar",
+    "update": "Atualizar",
+    "services": "Serviços",
+    "orders": "Pedidos",
+    "dashboard": "Painel",
+    "users": "Usuários",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "confirm": "Confirmar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "submit": "Enviar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "clear": "Limpar",
+    "close": "Fechar",
+    "open": "Abrir",
+    "view": "Ver",
+    "buy": "Comprar",
+    "order": "Pedir",
+    "contact": "Contato",
+    "support": "Suporte",
+    "retry": "Tentar Novamente",
+    "price": "Preço",
+    "usd": "USD",
+    "eur": "EUR",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "discount": "Desconto",
+    "apply": "Aplicar",
+    "promoCode": "Código Promocional",
+    "remove": "Remover",
+    "add": "Adicionar",
+    "continue": "Continuar",
+    "checkout": "Finalizar Compra",
+    "payNow": "Pagar Agora",
+    "processing": "Processando...",
+    "completed": "Concluído",
+    "pending": "Pendente",
+    "failed": "Falhou",
+    "refunded": "Reembolsado"
+  },
+  "navigation": {
+    "home": "Início",
+    "services": "Serviços",
+    "myOrders": "Meus Pedidos",
+    "support": "Suporte",
+    "account": "Conta",
+    "dashboard": "Painel",
+    "myProfile": "Meu Perfil",
+    "boosterPanel": "Painel do Booster",
+    "adminPanel": "Painel Admin",
+    "logout": "Sair",
+    "login": "Entrar",
+    "register": "Registrar",
+    "getBoosted": "RECEBA BOOST AGORA!",
+    "cart": "Carrinho",
+    "checkout": "Finalizar Compra"
+  },
+  "languages": {
+    "english": "Inglês",
+    "spanish": "Espanhol",
+    "portuguese": "Português",
+    "russian": "Russo",
+    "german": "Alemão",
+    "french": "Francês",
+    "dutch": "Holandês"
+  },
+  "home": {
+    "hero": {
+      "unlock": "DESBLOQUEIE SEU",
+      "potential": "VERDADEIRO POTENCIAL",
+      "description": "Transforme sua experiência de jogo com nosso serviço premium de boosting.",
+      "cta1": "JOGOS SUPORTADOS",
+      "cta2": "SAIBA MAIS"
+    },
+    "features": {
+      "title": "POR QUE ESCOLHER GONBOOST",
+      "subtitle": "Diferenças que definem a experiência premium",
+      "quote": "\"Mais do que apenas um serviço de boosting. Por trás de cada pedido está um compromisso com a excelência, segurança e satisfação do cliente. Entendemos a paixão e dedicação dos gamers, e estamos comprometidos em ajudá-lo a alcançar a experiência de jogo que você merece.\"",
+      "elite": {
+        "title": "Boosters Go&boost",
+        "description": "Trabalhamos apenas com os melhores boosters selecionados a dedo que provaram suas habilidades e confiabilidade através de milhares de pedidos bem-sucedidos."
+      },
+      "privacy": {
+        "title": "Privacidade Total",
+        "description": "Sua conexão e dados estão sempre criptografados e seguros. Processo completamente anônimo e seguro."
+      },
+      "express": {
+        "title": "Serviço Expresso",
+        "description": "Concluímos seu pedido em tempo recorde, sem bots, sem trapaças. Apenas jogadores profissionais reais boostando sua conta."
+      },
+      "premium": {
+        "title": "Experiência Premium",
+        "description": "Suporte dedicado e atualizações em tempo real. Não está satisfeito? Oferecemos reembolso total, sem perguntas."
+      }
+    },
+    "franchises": {
+      "diablo": "Universo Diablo",
+      "warcraft": "Universo Warcraft",
+      "premium": "Títulos Premium"
+    },
+    "games": {
+      "title1": "JOGOS",
+      "title2": "PREMIUM",
+      "subtitle": "Explore nossas franquias e títulos exclusivos",
+      "allGames": "Todos os Jogos",
+      "selected": "SELECIONADO",
+      "boostingServices": "serviços de boosting",
+      "clickInstruction": "Clique em qualquer jogo para explorar seus serviços exclusivos de boosting",
+      "viewAll": "VER TODOS OS JOGOS E SERVIÇOS"
+    },
+    "services": {
+      "title": "SERVIÇOS",
+      "featured": "DESTAQUE",
+      "exploreFranchise": "Explore todos os serviços de boosting {{franchise}}",
+      "premiumFor": "Serviços premium de boosting para {{game}}",
+      "glimpse": "Uma amostra de nossas ofertas premium",
+      "clearAll": "Limpar Tudo",
+      "unavailable": "SERVIÇOS TEMPORARIAMENTE INDISPONÍVEIS",
+      "errorMessage": "Estamos com problemas para conectar aos nossos serviços. Por favor, tente novamente mais tarde.",
+      "tryAgain": "TENTAR NOVAMENTE",
+      "noServices": "NENHUM SERVIÇO ENCONTRADO",
+      "noServicesAvailable": "Nenhum serviço disponível no momento.",
+      "tryDifferentFilters": "Tente filtros diferentes para descobrir nossas ofertas exclusivas",
+      "viewAllServices": "VER TODOS OS SERVIÇOS",
+      "estimated": "Estimado",
+      "orderNow": "PEDIR AGORA"
+    }
+  },
+  "servicesPage": {
+    "title": "Nossos Serviços",
+    "subtitle": "Escolha entre nossa ampla gama de serviços profissionais de boosting",
+    "hero": {
+      "line1": "SEU JOGO,",
+      "line2": "SUAS REGRAS",
+      "subtitle": "Serviços profissionais de boosting adaptados às suas necessidades. Rápidos, seguros e sempre confiáveis.",
+      "browseButton": "Explorar Serviços",
+      "customButton": "Pedido Personalizado"
+    },
+    "filters": {
+      "allGames": "Todos os Jogos",
+      "allTypes": "Todos os Tipos",
+      "searchPlaceholder": "Buscar por nome, jogo ou tipo...",
+      "moreGames": "Mais jogos...",
+      "allFor": "Todos",
+      "types": "tipos",
+      "allServiceTypes": "Todos os tipos",
+      "showing": "Mostrando",
+      "of": "de",
+      "services": "serviços",
+      "clearFilters": "Limpar filtros",
+      "loadMore": "Carregar Mais",
+      "remaining": "restantes",
+      "serviceAvailable": "SERVIÇO DISPONÍVEL",
+      "servicesAvailable": "SERVIÇOS DISPONÍVEIS",
+      "for": "PARA"
+    },
+    "categories": {
+      "all": "Todos os Tipos",
+      "ranked": "Boost de Ranqueada",
+      "placement": "Placement",
+      "coaching": "Coaching",
+      "wins": "Boost de Vitórias",
+      "arena": "Arena",
+      "duo": "Duo Queue",
+      "leveling": "Leveling",
+      "builds": "Builds",
+      "bundles": "Pacotes",
+      "content": "Conteúdo",
+      "farming": "Farming",
+      "pvp": "PvP",
+      "competitive": "Competitivo"
+    },
+    "card": {
+      "startingAt": "A partir de",
+      "orderNow": "Pedir Agora",
+      "learnMore": "Saiba Mais"
+    },
+    "noServicesFound": "Nenhum serviço encontrado",
+    "noServicesAvailable": "Nenhum serviço disponível no momento.",
+    "noMatchFilters": "Nenhum serviço corresponde aos seus filtros. Tente ajustar seus critérios.",
+    "customNeedsTitle1": "PRECISA DE ALGO",
+    "customNeedsTitle2": "PERSONALIZADO?",
+    "customNeedsDescription": "Não encontrou exatamente o que procura? Entre em contato para um serviço personalizado.",
+    "backToHome": "VOLTAR AO INÍCIO",
+    "customService": "SERVIÇO PERSONALIZADO"
+  },
+  "serviceDetail": {
+    "notFound": "Serviço Não Encontrado",
+    "browseAllServices": "Navegar por Todos os Serviços",
+    "breadcrumb": {
+      "home": "Início",
+      "services": "Serviços"
+    },
+    "backToServices": "Voltar aos Serviços",
+    "startingAt": "A partir de",
+    "orderNow": "Pedir Agora",
+    "whatsIncluded": "O que está Incluso",
+    "requirements": "Requisitos",
+    "whyChoose": "Por que Escolher a Gonboost?",
+    "readyToStart": "Pronto para Começar?",
+    "readyDesc": "Pule o grind e vá direto para a diversão.",
+    "moreFrom": "Mais de",
+    "viewDetails": "Ver Detalhes",
+    "reviews": "avaliações",
+    "reviewsCount": "4.9/5 ({{count}} avaliações)",
+    "completionRate": "Taxa de Conclusão",
+    "ordersCompleted": "Pedidos Concluídos",
+    "customerRating": "Avaliação dos Clientes",
+    "supportAvailable": "Suporte Disponível",
+    "faq": {
+      "title": "Perguntas Frequentes",
+      "howLong": "Quanto tempo leva {{serviceName}}?",
+      "howLongAnswer": "Normalmente {{time}}, dependendo do rank atual e do rank desejado.",
+      "isSafe": "Compartilhar a conta é seguro?",
+      "isSafeAnswer": "Sim! Usamos VPNs premium e criptografia SSL. A segurança da sua conta é nossa prioridade máxima.",
+      "canPlay": "Posso jogar enquanto vocês fazem o boost?",
+      "canPlayAnswer": "Recomendamos não fazer login na sua conta durante o boost para evitar conflitos ou atrasos.",
+      "guarantee": "E se algo der errado?",
+      "guaranteeAnswer": "Oferecemos garantia de satisfação de 100%. Se você não estiver satisfeito, corrigiremos ou devolveremos seu dinheiro.",
+      "payment": "Meu pagamento está seguro?",
+      "paymentAnswer": "Absolutamente. Usamos PayPal e Stripe para processamento seguro de pagamentos. Suas informações financeiras nunca são armazenadas em nossos servidores."
+    },
+    "guarantees": {
+      "secure": {
+        "title": "100% Seguro",
+        "desc": "Criptografia SSL e Proteção VPN"
+      },
+      "support": {
+        "title": "Suporte 24/7",
+        "desc": "Sempre aqui para ajudar"
+      },
+      "fast": {
+        "title": "Finalização Rápida",
+        "desc": "Tempo estimado: {{time}}"
+      },
+      "refund": {
+        "title": "Garantia de Reembolso",
+        "desc": "Reembolso total se não estiver satisfeito"
+      }
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Entrar na Sua Conta",
+      "subtitle": "Bem-vindo de volta! Por favor, insira seus dados.",
+      "username": "Usuário",
+      "password": "Senha",
+      "rememberMe": "Lembrar de mim",
+      "forgotPassword": "Esqueceu a senha?",
+      "submit": "Entrar",
+      "noAccount": "Não tem uma conta?",
+      "register": "Registre-se",
+      "orContinueWith": "Ou continue com"
+    },
+    "register": {
+      "title": "Criar Sua Conta",
+      "subtitle": "Junte-se à Gonboost e comece a boostar hoje!",
+      "username": "Usuário",
+      "email": "E-mail",
+      "password": "Senha",
+      "confirmPassword": "Confirmar Senha",
+      "submit": "Criar Conta",
+      "haveAccount": "Já tem uma conta?",
+      "login": "Entrar",
+      "terms": "Eu concordo com os",
+      "termsLink": "Termos de Serviço",
+      "and": "e",
+      "privacyLink": "Política de Privacidade"
+    },
+    "forgotPassword": {
+      "title": "Redefinir Sua Senha",
+      "subtitle": "Digite seu e-mail e enviaremos um link de redefinição.",
+      "email": "E-mail",
+      "submit": "Enviar Link",
+      "backToLogin": "Voltar para Entrar"
+    },
+    "resetPassword": {
+      "title": "Definir Nova Senha",
+      "newPassword": "Nova Senha",
+      "confirmPassword": "Confirmar Nova Senha",
+      "submit": "Redefinir Senha"
+    },
+    "errors": {
+      "invalidCredentials": "Usuário ou senha inválidos",
+      "usernameRequired": "Usuário é obrigatório",
+      "passwordRequired": "Senha é obrigatória",
+      "emailRequired": "E-mail é obrigatório",
+      "emailInvalid": "Digite um e-mail válido",
+      "passwordMatch": "As senhas devem coincidir",
+      "passwordLength": "A senha deve ter pelo menos 6 caracteres"
+    }
+  },
+  "orders": {
+    "title": "Meus Pedidos",
+    "subtitle": "Acompanhe e gerencie seus pedidos de boosting",
+    "noOrders": "Nenhum pedido encontrado",
+    "orderNumber": "Pedido #{{number}}",
+    "status": {
+      "pending": "Pendente",
+      "processing": "Processando",
+      "inProgress": "Em Andamento",
+      "completed": "Concluído",
+      "cancelled": "Cancelado"
+    },
+    "details": {
+      "service": "Serviço",
+      "game": "Jogo",
+      "price": "Preço",
+      "date": "Data do Pedido",
+      "estimatedCompletion": "Conclusão Estimada",
+      "booster": "Booster Designado",
+      "progress": "Progresso"
+    },
+    "actions": {
+      "viewDetails": "Ver Detalhes",
+      "contactBooster": "Contatar Booster",
+      "cancelOrder": "Cancelar Pedido"
+    }
+  },
+  "support": {
+    "title": "Central de Suporte",
+    "subtitle": "Estamos aqui para ajudar 24/7",
+    "newTicket": "Novo Ticket de Suporte",
+    "myTickets": "Meus Tickets",
+    "subject": "Assunto",
+    "message": "Mensagem",
+    "category": "Categoria",
+    "priority": "Prioridade",
+    "submit": "Enviar Ticket",
+    "categories": {
+      "general": "Consulta Geral",
+      "order": "Problema com Pedido",
+      "payment": "Problema de Pagamento",
+      "technical": "Suporte Técnico",
+      "other": "Outro"
+    },
+    "priorities": {
+      "low": "Baixa",
+      "medium": "Média",
+      "high": "Alta",
+      "urgent": "Urgente"
+    },
+    "chat": {
+      "title": "Chat ao Vivo",
+      "online": "Estamos online!",
+      "offline": "Estamos offline",
+      "startChat": "Iniciar Chat",
+      "typing": "Digitando...",
+      "placeholder": "Digite sua mensagem..."
+    }
+  },
+  "dashboard": {
+    "title": "Painel de Controle",
+    "welcome": "Bem-vindo de volta, {{name}}!",
+    "stats": {
+      "totalOrders": "Total de Pedidos",
+      "activeOrders": "Pedidos Ativos",
+      "completedOrders": "Pedidos Concluídos",
+      "totalSpent": "Total Gasto"
+    },
+    "recentOrders": "Pedidos Recentes",
+    "quickActions": "Ações Rápidas",
+    "actions": {
+      "newOrder": "Novo Pedido",
+      "viewServices": "Ver Serviços",
+      "contactSupport": "Contatar Suporte"
+    }
+  },
+  "boosterPanel": {
+    "title": "Painel do Booster",
+    "welcome": "Bem-vindo, {{name}}!",
+    "stats": {
+      "assignedOrders": "Pedidos Atribuídos",
+      "completedThisMonth": "Concluídos Este Mês",
+      "earnings": "Ganhos",
+      "rating": "Avaliação"
+    },
+    "orders": {
+      "available": "Pedidos Disponíveis",
+      "myOrders": "Meus Pedidos",
+      "claim": "Reivindicar Pedido",
+      "start": "Iniciar Pedido",
+      "complete": "Marcar como Concluído",
+      "reportIssue": "Reportar Problema"
+    },
+    "earnings": {
+      "title": "Ganhos",
+      "pending": "Pagamento Pendente",
+      "paid": "Pago",
+      "requestPayout": "Solicitar Pagamento"
+    }
+  },
+  "admin": {
+    "title": "Painel de Administração",
+    "sidebar": {
+      "dashboard": "Painel",
+      "orders": "Pedidos",
+      "users": "Usuários",
+      "services": "Serviços",
+      "tickets": "Tickets de Suporte",
+      "payments": "Pagamentos",
+      "boosters": "Boosters",
+      "settings": "Configurações"
+    },
+    "dashboard": {
+      "totalRevenue": "Receita Total",
+      "activeOrders": "Pedidos Ativos",
+      "newUsers": "Novos Usuários",
+      "openTickets": "Tickets Abertos",
+      "recentActivity": "Atividade Recente"
+    },
+    "orders": {
+      "title": "Gerenciar Pedidos",
+      "allOrders": "Todos os Pedidos",
+      "filterByStatus": "Filtrar por Status",
+      "assignBooster": "Atribuir Booster",
+      "updateStatus": "Atualizar Status",
+      "refund": "Processar Reembolso"
+    },
+    "users": {
+      "title": "Gerenciar Usuários",
+      "allUsers": "Todos os Usuários",
+      "filterByRole": "Filtrar por Função",
+      "roles": {
+        "customer": "Cliente",
+        "booster": "Booster",
+        "admin": "Administrador"
+      },
+      "actions": {
+        "editRole": "Editar Função",
+        "banUser": "Banir Usuário",
+        "deleteUser": "Excluir Usuário"
+      }
+    },
+    "services": {
+      "title": "Gerenciar Serviços",
+      "addService": "Adicionar Novo Serviço",
+      "editService": "Editar Serviço",
+      "deleteService": "Excluir Serviço",
+      "fields": {
+        "name": "Nome do Serviço",
+        "game": "Jogo",
+        "type": "Tipo de Serviço",
+        "price": "Preço Base",
+        "description": "Descrição",
+        "available": "Disponível",
+        "featured": "Destaque"
+      }
+    },
+    "tickets": {
+      "title": "Tickets de Suporte",
+      "openTickets": "Tickets Abertos",
+      "closedTickets": "Tickets Fechados",
+      "assignTo": "Atribuir Para",
+      "reply": "Responder",
+      "close": "Fechar Ticket"
+    },
+    "payments": {
+      "title": "Gerenciamento de Pagamentos",
+      "transactions": "Transações",
+      "payouts": "Pagamentos aos Boosters",
+      "refunds": "Reembolsos",
+      "methods": {
+        "paypal": "PayPal",
+        "stripe": "Stripe",
+        "crypto": "Criptomoeda"
+      }
+    },
+    "settings": {
+      "title": "Configurações",
+      "general": "Configurações Gerais",
+      "payment": "Configurações de Pagamento",
+      "email": "Modelos de E-mail",
+      "seo": "Configurações de SEO"
+    },
+    "errors": {
+      "loadServices": "Erro carregando serviços: ",
+      "missingFields": "Campos obrigatórios faltando: "
+    }
+  },
+  "errors": {
+    "notFound": "Endpoint de serviços não encontrado. Verifique as rotas do backend.",
+    "404": {
+      "title": "Página Não Encontrada",
+      "message": "A página que você procura não existe ou foi movida.",
+      "goBack": "Voltar",
+      "goHome": "Ir para o Início"
+    },
+    "500": {
+      "title": "Erro do Servidor",
+      "message": "Algo deu errado. Tente novamente mais tarde."
+    },
+    "network": {
+      "title": "Erro de Rede",
+      "message": "Não foi possível conectar ao servidor. Verifique sua conexão com a internet."
+    },
+    "unauthorized": {
+      "title": "Não Autorizado",
+      "message": "Você não tem permissão para acessar esta página."
+    },
+    "sessionExpired": {
+      "title": "Sessão Expirada",
+      "message": "Sua sessão expirou. Faça login novamente."
+    }
+  },
+  "footer": {
+    "copyright": "© 2024 Gonboost. Todos os direitos reservados.",
+    "terms": "Termos e Condições",
+    "privacy": "Política de Privacidade",
+    "refund": "Política de Reembolso",
+    "contact": "Contato",
+    "about": "Sobre Nós",
+    "faq": "FAQ"
+  },
+  "games": {
+    "diablo4": "Diablo 4",
+    "diablo3": "Diablo 3",
+    "diablo2": "Diablo 2 Resurrected",
+    "wow": "World of Warcraft",
+    "wowClassic": "World of Warcraft Classic",
+    "poe": "Path of Exile",
+    "poe2": "Path of Exile 2",
+    "lastEpoch": "Last Epoch"
+  }
+}

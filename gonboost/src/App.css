@@ -1,0 +1,184 @@
+/* Fuente estilo Diablo */
+@import url('https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap');
+
+/* Fuentes para otros juegos */
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Audiowide&display=swap');
+
+/* Reset completo para pantalla completa */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  /* REMOVER overflow: hidden */
+}
+
+/* Scroll suave global */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Eliminar estilos por defecto de Vite */
+#root {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+/* Snap scrolling para secciones de pantalla completa */
+.snap-container {
+  height: 100vh;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+}
+
+.snap-section {
+  height: 100vh;
+  scroll-snap-align: start;
+  position: relative;
+}
+
+/* Ocultar scrollbar pero mantener funcionalidad */
+.snap-container::-webkit-scrollbar {
+  display: none;
+}
+
+.snap-container {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Animaciones personalizadas */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 5px rgba(96, 165, 250, 0.5);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.8);
+  }
+}
+
+/* 🆕 ANIMACIONES PARA CHAT LIVE */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.8);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+/* 🆕 CLASES PARA CHAT LIVE */
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* 🆕 Asegurar que el chat esté por encima de todo */
+.live-chat-widget {
+  z-index: 1000;
+}
+
+/* 🆕 Ajustes para móviles */
+@media (max-width: 768px) {
+  .live-chat-window {
+    width: 100vw !important;
+    height: 100vh !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    border-radius: 0 !important;
+  }
+}
+
+
+.dashboard-dark-links a {
+  color: #1f2937; /* gray-800 */
+}
+
+.dashboard-dark-links a:hover {
+  color: #111827; /* gray-900 */
+}
+
+/* En tu archivo CSS global o en tailwind.config.js */
+
+
+.font-diablo {
+  font-family: 'Cinzel Decorative', cursive;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.font-warcraft {
+  font-family: 'MedievalSharp', cursive;
+  font-weight: 700;
+}
+
+.font-lol {
+  font-family: 'Oxanium', cursive;
+  font-weight: 800;
+}
+
+.font-valorant {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+}
+
+.font-overwatch {
+  font-family: 'Teko', sans-serif;
+  font-weight: 700;
+}
+
+.font-csgo {
+  font-family: 'Audiowide', cursive;
+}
+
+.font-dota {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+}
+
+.font-poe {
+  font-family: 'Cinzel Decorative', cursive;
+  font-weight: 700;
+}

@@ -1,0 +1,44 @@
+# robots.txt para Gonboost (gonboost.com)
+# Soporte multilingüe: en, es, de, fr, nl, pt, ru
+
+User-agent: *
+# Permitimos todo por defecto, excepto lo listado en Disallow:
+Allow: / 
+
+# Sitemaps
+Sitemap: https://gonboost.com/sitemap.xml
+Sitemap: https://gonboost.com/sitemap-index.xml
+
+# --- Bloqueos de Seguridad y Áreas Privadas ---
+# Bloquear el panel de administración (no debe ser público)
+Disallow: /admin/
+
+# Bloquear acceso a la API y rutas del servidor
+Disallow: /api/
+
+# Bloquear archivos de sistema y configuración
+Disallow: /*.env
+Disallow: /*.config
+Disallow: /*.json
+Disallow: /*.log
+Disallow: /*.sql
+Disallow: /*.bak
+Disallow: /.git/
+Disallow: /.ebextensions/
+
+# Bloquear páginas de utilidad/pago para evitar rastreo accidental 
+# (Esto es opcional; si quieres que Google vea tus páginas de checkout, quítalas)
+Disallow: /order/
+Disallow: /checkout/
+Disallow: /payment/
+Disallow: /paypal/
+
+# --- Parámetros de Rastreo ---
+# Retraso entre peticiones (útil para no saturar el servidor)
+# Nota: Google ignora esto, pero Yandex y Bing lo respetan
+Crawl-delay: 1
+
+# --- Sitemaps específicos por idioma (Opcional) ---
+# Si en el futuro creas sitemaps individuales, puedes añadirlos aquí.
+# Sitemap: https://gonboost.com/es/sitemap.xml
+# Sitemap: https://gonboost.com/ru/sitemap.xml
