@@ -31,52 +31,48 @@ const Register = () => {
   // Función para cargar el script de reCAPTCHA
   const loadRecaptchaScript = useCallback(() => {
     return new Promise((resolve) => {
+      // 1. Si el script y el método render ya están disponibles, resolvemos inmediatamente
       if (window.grecaptcha && window.grecaptcha.render) {
         resolve();
         return;
       }
 
-      if (recaptchaScriptLoading) {
+      // Helper para esperar a que el método .render se inyecte en el objeto global
+      const waitForRender = () => {
         const checkInterval = setInterval(() => {
           if (window.grecaptcha && window.grecaptcha.render) {
             clearInterval(checkInterval);
+            recaptchaScriptLoaded = true;
+            recaptchaScriptLoading = false;
             resolve();
           }
         }, 100);
-        return;
-      }
+      };
 
-      if (recaptchaScriptLoaded) {
-        const checkInterval = setInterval(() => {
-          if (window.grecaptcha && window.grecaptcha.render) {
-            clearInterval(checkInterval);
-            resolve();
-          }
-        }, 100);
+      // 2. Si ya se está cargando (por otro componente), simplemente esperamos
+      if (recaptchaScriptLoading || recaptchaScriptLoaded) {
+        waitForRender();
         return;
       }
 
       recaptchaScriptLoading = true;
 
+      // 3. Verificar si el script ya existe en el DOM por navegación previa
       const existingScript = document.querySelector('script[src*="recaptcha/api.js"]');
       if (existingScript) {
-        existingScript.addEventListener('load', () => {
-          recaptchaScriptLoaded = true;
-          recaptchaScriptLoading = false;
-          resolve();
-        });
+        waitForRender();
         return;
       }
 
+      // 4. Cargar el script por primera vez
       const script = document.createElement('script');
       script.src = `https://www.google.com/recaptcha/api.js?render=explicit`;
       script.async = true;
       script.defer = true;
       
       script.onload = () => {
-        recaptchaScriptLoaded = true;
-        recaptchaScriptLoading = false;
-        resolve();
+        // En lugar de resolver inmediatamente, esperamos a que el método render esté completamente inicializado.
+        waitForRender();
       };
       
       script.onerror = () => {
