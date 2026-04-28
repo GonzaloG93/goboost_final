@@ -13,7 +13,7 @@ import dotenv from 'dotenv';
 console.log('🔄 Loading environment variables...');
 dotenv.config();
 
-import corsOptions from './middleware/cors.js';  // ✅ Ahora SÍ se usa
+import corsOptions from './middleware/cors.js';
 import { setupSocketIO } from './socket/socket.js';
 import { socketMiddleware } from './middleware/socketMiddleware.js';
 
@@ -25,7 +25,6 @@ import sitemapRouter      from './routes/sitemap.js';
 import sitemapIndexRouter from './routes/sitemapIndex.js';
 import seoRoutes from './routes/seo.js';
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -36,11 +35,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 const PORT = process.env.PORT || 5000;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// ================= CORS — FUENTE ÚNICA =================
-// ✅ FIX: usar corsOptions de cors.js, no una config inline duplicada
+// ================= CORS =================
 app.use(cors(corsOptions));
-
-// Manejar preflight OPTIONS explícitamente (crucial para Socket.IO)
 app.options('*', cors(corsOptions));
 
 // ================= LOGGING =================
@@ -82,8 +78,12 @@ app.use('/api/support', (req, res, next) => {
   next();
 });
 
+// ================= SITEMAPS — van primero, antes de cualquier otra ruta =================
+// ✅ Crítico: deben estar ANTES del app.get('/') y del 404 handler
+app.use('/', sitemapRouter);
+app.use('/', sitemapIndexRouter);
+
 // ================= RUTAS =================
-// ✅ FIX: separar rutas /api para evitar colisiones
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -117,14 +117,11 @@ app.get('/health', (req, res) => {
   res.status(200).json(healthData);
 });
 
-// ✅ FIX: support ANTES de apiRoutes para evitar que /api catch-all lo tape
 app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/privacy-policy', privacyRoutes);
 app.use('/api/seo', seoRoutes);
-app.use('/api', apiRoutes);  // general va último
-app.use('/', sitemapRouter);
-app.use('/', sitemapIndexRouter);
+app.use('/api', apiRoutes);
 
 // ================= 404 =================
 app.use((req, res) => {
@@ -194,6 +191,7 @@ const startServer = async () => {
       console.log(`🌐 Frontend URL: ${FRONTEND_URL}`);
       console.log(`📡 Socket.IO ready`);
       console.log(`🔗 Health: http://localhost:${PORT}/health`);
+      console.log(`🗺️  Sitemap: http://localhost:${PORT}/sitemap.xml`);
       console.log('='.repeat(50));
     });
     server.on('error', (error) => {
