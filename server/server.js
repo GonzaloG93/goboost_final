@@ -21,8 +21,10 @@ import apiRoutes from './routes/index.js';
 import adminRoutes from './routes/admin.js';
 import privacyRoutes from './routes/privacyRoutes.js';
 import supportRoutes from './routes/support.js';
-import sitemapRoutes from './routes/sitemap.js';
+import sitemapRouter      from './routes/sitemap.js';
+import sitemapIndexRouter from './routes/sitemapIndex.js';
 import seoRoutes from './routes/seo.js';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -121,7 +123,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/privacy-policy', privacyRoutes);
 app.use('/api/seo', seoRoutes);
 app.use('/api', apiRoutes);  // general va último
-app.use('/', sitemapRoutes);
+app.use('/', sitemapRouter);
+app.use('/', sitemapIndexRouter);
 
 // ================= 404 =================
 app.use((req, res) => {
