@@ -39,7 +39,7 @@ Disallow: /payment/
 Disallow: /paypal/
 
 
-Crawl-delay: 2
+
 # --- Parámetros de Rastreo ---
 # Retraso entre peticiones (útil para no saturar el servidor)
 # Nota: Google ignora esto, pero Yandex y Bing lo respetan

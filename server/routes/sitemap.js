@@ -1,243 +1,128 @@
-// backend/routes/sitemap.js - VERSIÓN PRODUCCIÓN MULTILINGÜE
-// Generación dinámica de sitemap.xml con soporte para 7 idiomas
+// routes/sitemap.js - Gonboost.com
+// Sitemap dinámico multilingüe (en, es, de, fr, nl, pt, ru)
+// Incluye rutas estáticas de React + servicios dinámicos de MongoDB
+
 import express from 'express';
 import BoostService from '../models/BoostService.js';
 
 const router = express.Router();
 
-// ================= CONFIGURACIÓN =================
-const BASE_URL = process.env.BASE_URL || 'https://gonboost.com';
+const BASE_URL = 'https://gonboost.com';
+
+// Idiomas soportados (debe coincidir con SUPPORTED_LANGUAGES en i18n.js)
 const SUPPORTED_LANGUAGES = ['en', 'es', 'de', 'fr', 'nl', 'pt', 'ru'];
-const DEFAULT_LANGUAGE = 'en';
+const DEFAULT_LANGUAGE    = 'en';
 
-// ================= FUNCIONES HELPER =================
+// Rutas públicas de React que deben indexarse
+// (excluimos: /order, /checkout, /my-orders, /dashboard, /support,
+//  /booster/dashboard, /admin — requieren auth o son privadas)
+const PUBLIC_STATIC_ROUTES = [
+  { path: '',           changefreq: 'weekly',  priority: '1.0' }, // Home
+  { path: '/services',  changefreq: 'daily',   priority: '0.9' }, // Lista de servicios
+  { path: '/terms',     changefreq: 'monthly', priority: '0.4' },
+  { path: '/privacy',   changefreq: 'monthly', priority: '0.4' },
+];
 
-// Formatear fecha para sitemap
-const formatDate = (date) => {
-  if (!date) return new Date().toISOString();
-  return new Date(date).toISOString();
-};
+// Construye el prefijo de URL según idioma
+function langPrefix(lang) {
+  return lang === DEFAULT_LANGUAGE ? '' : `/${lang}`;
+}
 
-// Generar URL para sitemap con alternativas hreflang
-const generateUrlEntry = (loc, lastmod, changefreq, priority, alternates = {}) => {
-  let entry = `  <url>\n`;
-  entry += `    <loc>${loc}</loc>\n`;
-  if (lastmod) entry += `    <lastmod>${formatDate(lastmod)}</lastmod>\n`;
-  if (changefreq) entry += `    <changefreq>${changefreq}</changefreq>\n`;
-  if (priority) entry += `    <priority>${priority}</priority>\n`;
-  
-  // Añadir alternativas hreflang
-  Object.entries(alternates).forEach(([lang, url]) => {
-    entry += `    <xhtml:link rel="alternate" hreflang="${lang}" href="${url}"/>\n`;
-  });
-  
-  entry += `  </url>`;
-  return entry;
-};
+// Formatea fecha para el sitemap
+function xmlDate(date) {
+  return new Date(date || Date.now()).toISOString().split('T')[0];
+}
 
-// Generar URLs por idioma para una ruta
-const generateLanguageUrls = (path) => {
-  const urls = {};
-  
-  SUPPORTED_LANGUAGES.forEach(lang => {
-    const url = lang === DEFAULT_LANGUAGE 
-      ? `${BASE_URL}${path}`
-      : `${BASE_URL}/${lang}${path}`;
-    urls[lang] = url.replace(/\/+/g, '/');
-  });
-  
-  return urls;
-};
+// Genera un bloque <url>
+function urlEntry({ loc, lastmod, changefreq, priority, alternates }) {
+  const altLinks = alternates
+    ? alternates.map(a => `    <xhtml:link rel="alternate" hreflang="${a.lang}" href="${a.href}"/>`).join('\n')
+    : '';
 
-// ================= ENDPOINT PRINCIPAL DEL SITEMAP =================
+  return `  <url>
+    <loc>${loc}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
+${altLinks}
+  </url>`;
+}
+
+// Construye los hreflang alternates para una ruta dada
+function buildAlternates(pathSuffix) {
+  const alts = SUPPORTED_LANGUAGES.map(lang => ({
+    lang,
+    href: `${BASE_URL}${langPrefix(lang)}${pathSuffix}`,
+  }));
+  // Agrega x-default apuntando a la versión en inglés
+  alts.push({ lang: 'x-default', href: `${BASE_URL}${pathSuffix}` });
+  return alts;
+}
+
 router.get('/sitemap.xml', async (req, res) => {
   try {
-    console.log('🗺️ [Sitemap] Generando sitemap.xml multilingüe...');
-    
-    const today = new Date().toISOString();
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n';
-    xml += '        xmlns:xhtml="http://www.w3.org/1999/xhtml">\n';
-    
-    // ================= PÁGINAS ESTÁTICAS =================
-    const staticPages = [
-      { path: '/', changefreq: 'daily', priority: '1.0' },
-      { path: '/services', changefreq: 'daily', priority: '0.9' },
-      { path: '/login', changefreq: 'monthly', priority: '0.3' },
-      { path: '/register', changefreq: 'monthly', priority: '0.3' },
-      { path: '/support', changefreq: 'weekly', priority: '0.7' },
-      { path: '/terms', changefreq: 'yearly', priority: '0.2' },
-      { path: '/privacy', changefreq: 'yearly', priority: '0.2' }
-    ];
-    
-    staticPages.forEach(page => {
-      const alternates = generateLanguageUrls(page.path);
-      
-      // Añadir entrada para el idioma por defecto (inglés)
-      xml += generateUrlEntry(
-        alternates[DEFAULT_LANGUAGE],
-        today,
-        page.changefreq,
-        page.priority,
-        alternates
-      ) + '\n';
-    });
-    
-    // ================= PÁGINAS DE SERVICIO DINÁMICAS =================
-    try {
-      const services = await BoostService.find({ 
-        available: true, 
-        isActive: true 
-      }).select('_id name game updatedAt').lean();
-      
-      console.log(`📦 [Sitemap] ${services.length} servicios encontrados`);
-      
-      for (const service of services) {
-        const servicePath = `/service/${service._id}`;
-        const alternates = generateLanguageUrls(servicePath);
-        
-        xml += generateUrlEntry(
-          alternates[DEFAULT_LANGUAGE],
-          service.updatedAt || today,
-          'weekly',
-          '0.8',
-          alternates
-        ) + '\n';
-      }
-    } catch (error) {
-      console.error('❌ [Sitemap] Error obteniendo servicios:', error.message);
-    }
-    
-    // ================= PÁGINAS DE JUEGOS =================
-    try {
-      const games = await BoostService.distinct('game', { 
-        available: true, 
-        isActive: true 
-      });
-      
-      console.log(`🎮 [Sitemap] ${games.length} juegos encontrados`);
-      
-      for (const game of games) {
-        const gamePath = `/services?game=${encodeURIComponent(game)}`;
-        const alternates = generateLanguageUrls(gamePath);
-        
-        xml += generateUrlEntry(
-          alternates[DEFAULT_LANGUAGE],
-          today,
-          'weekly',
-          '0.7',
-          alternates
-        ) + '\n';
-      }
-    } catch (error) {
-      console.error('❌ [Sitemap] Error obteniendo juegos:', error.message);
-    }
-    
-    // ================= PÁGINAS DE IDIOMA (ÍNDICES) =================
-    SUPPORTED_LANGUAGES.forEach(lang => {
-      if (lang !== DEFAULT_LANGUAGE) {
-        const langPath = `/${lang}`;
-        const alternates = generateLanguageUrls('/');
-        
-        xml += generateUrlEntry(
-          `${BASE_URL}${langPath}`,
-          today,
-          'daily',
-          '0.9',
-          alternates
-        ) + '\n';
-      }
-    });
-    
-    xml += '</urlset>';
-    
-    console.log(`✅ [Sitemap] Sitemap generado correctamente`);
-    
-    // Headers para producción
-    res.setHeader('Content-Type', 'application/xml');
-    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400');
-    
-    res.send(xml);
-    
-  } catch (error) {
-    console.error('❌ [Sitemap] Error generando sitemap:', error);
-    res.status(500).send('Error generating sitemap');
-  }
-});
+    // ─── 1. Servicios dinámicos desde MongoDB ───────────────────────────────
+    const services = await BoostService.find(
+      { available: true, isActive: true },
+      '_id updatedAt'            // Solo traemos lo necesario
+    ).lean();
 
-// ================= SITEMAP INDEX PARA MÚLTIPLES ARCHIVOS =================
-router.get('/sitemap-index.xml', async (req, res) => {
-  try {
-    console.log('🗺️ [Sitemap] Generando sitemap index...');
-    
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    xml += '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-    
-    const today = new Date().toISOString();
-    
-    // Sitemap principal
-    xml += `  <sitemap>\n`;
-    xml += `    <loc>${BASE_URL}/sitemap.xml</loc>\n`;
-    xml += `    <lastmod>${today}</lastmod>\n`;
-    xml += `  </sitemap>\n`;
-    
-    // Sitemaps por idioma (opcional, para sitios muy grandes)
-    SUPPORTED_LANGUAGES.forEach(lang => {
-      const langBase = lang === DEFAULT_LANGUAGE ? BASE_URL : `${BASE_URL}/${lang}`;
-      xml += `  <sitemap>\n`;
-      xml += `    <loc>${langBase}/sitemap-${lang}.xml</loc>\n`;
-      xml += `    <lastmod>${today}</lastmod>\n`;
-      xml += `  </sitemap>\n`;
-    });
-    
-    xml += '</sitemapindex>';
-    
-    res.setHeader('Content-Type', 'application/xml');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    
-    res.send(xml);
-    
-  } catch (error) {
-    console.error('❌ [Sitemap] Error generando sitemap index:', error);
-    res.status(500).send('Error generating sitemap index');
-  }
-});
+    // ─── 2. Construir todas las URLs ────────────────────────────────────────
+    const entries = [];
+    const today   = xmlDate();
 
-// ================= ENDPOINT DE INFORMACIÓN DEL SITEMAP =================
-router.get('/sitemap-info', async (req, res) => {
-  try {
-    const totalServices = await BoostService.countDocuments({ available: true, isActive: true });
-    const games = await BoostService.distinct('game', { available: true, isActive: true });
-    
-    const staticPages = ['/', '/services', '/login', '/register', '/support', '/terms', '/privacy'];
-    
-    const totalUrls = 
-      staticPages.length + 
-      totalServices + 
-      games.length + 
-      (SUPPORTED_LANGUAGES.length - 1); // Páginas de índice por idioma
-    
-    res.json({
-      success: true,
-      sitemapUrl: `${BASE_URL}/sitemap.xml`,
-      sitemapIndexUrl: `${BASE_URL}/sitemap-index.xml`,
-      totalUrls,
-      breakdown: {
-        staticPages: staticPages.length,
-        services: totalServices,
-        games: games.length,
-        languageIndices: SUPPORTED_LANGUAGES.length - 1
-      },
-      languages: SUPPORTED_LANGUAGES,
-      lastGenerated: new Date().toISOString()
-    });
-    
-  } catch (error) {
-    console.error('❌ [Sitemap] Error obteniendo info:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error getting sitemap info'
-    });
+    // 2a. Rutas estáticas (todas las variantes de idioma)
+    for (const route of PUBLIC_STATIC_ROUTES) {
+      const alternates = buildAlternates(route.path);
+
+      for (const lang of SUPPORTED_LANGUAGES) {
+        const loc = `${BASE_URL}${langPrefix(lang)}${route.path}`;
+        entries.push(urlEntry({
+          loc,
+          lastmod:    today,
+          changefreq: route.changefreq,
+          priority:   lang === DEFAULT_LANGUAGE ? route.priority : String((parseFloat(route.priority) - 0.1).toFixed(1)),
+          alternates,
+        }));
+      }
+    }
+
+    // 2b. Rutas de servicios dinámicos (todas las variantes de idioma)
+    for (const service of services) {
+      const pathSuffix = `/service/${service._id}`;
+      const lastmod    = xmlDate(service.updatedAt);
+      const alternates = buildAlternates(pathSuffix);
+
+      for (const lang of SUPPORTED_LANGUAGES) {
+        const loc = `${BASE_URL}${langPrefix(lang)}${pathSuffix}`;
+        entries.push(urlEntry({
+          loc,
+          lastmod,
+          changefreq: 'weekly',
+          priority:   lang === DEFAULT_LANGUAGE ? '0.8' : '0.7',
+          alternates,
+        }));
+      }
+    }
+
+    // ─── 3. Armar el XML final ──────────────────────────────────────────────
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+${entries.join('\n')}
+
+</urlset>`;
+
+    // Cache 1 hora en CDN/proxy, revalida en background (ideal para Render)
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+    res.send(xml);
+
+  } catch (err) {
+    console.error('[sitemap] Error generando sitemap:', err);
+    res.status(500).send('Error generando el sitemap');
   }
 });
 
