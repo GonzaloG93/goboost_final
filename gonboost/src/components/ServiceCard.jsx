@@ -4,28 +4,26 @@ import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from '../i18n';
 import { generateServiceSlug } from '../utils/urlHelpers';
 import { FaClock, FaStar, FaEye, FaShoppingCart, FaCheck, FaGamepad } from 'react-icons/fa';
-// Importamos tu configuración real de axios
 import axios from '../utils/axiosConfig';
 
-const ServiceCard = ({ service, onOrderNow }) => {
-  const serviceId = service._id || service.id;
+const ServiceCard = ({ service }) => {
+  // ✅ Captura robusta: si _id no está, busca id, y como último recurso usa el slug generado
+  const serviceSlug = generateServiceSlug(service);
+  const serviceId = service._id || service.id || serviceSlug;
   
   const { i18n } = useTranslation();
   const currentLang = i18n.language;
   const prefix = currentLang === DEFAULT_LANGUAGE ? '' : `/${currentLang}`;
   
-  const serviceSlug = serviceId ? generateServiceSlug(service) : '#';
   const price = service.basePrice || service.price || 0;
   
   const [reviewStats, setReviewStats] = useState({ rating: 0, count: 0, loaded: false });
 
   useEffect(() => {
     const fetchReviewStats = async () => {
-      // Evitamos peticiones a "undefined"
       if (!serviceId || serviceId === 'undefined') return; 
       
       try {
-        // Usamos axios para apuntar a tu backend real
         const response = await axios.get(`/reviews/service/${serviceId}/stats`);
         if (response.data) {
           setReviewStats({
@@ -88,13 +86,6 @@ const ServiceCard = ({ service, onOrderNow }) => {
         <h3 className="text-xl font-bold text-white mb-2 line-clamp-1 group-hover:text-cyan-300 transition-colors duration-300">
           {service.name}
         </h3>
-        
-        {/* TEXTO DE DIAGNÓSTICO TEMPORAL - BORRAR DESPUÉS */}
-        {!serviceId && (
-          <p className="text-red-400 text-xs mb-2 p-1 border border-red-500 rounded bg-red-900/30">
-            Keys: {Object.keys(service).join(', ')}
-          </p>
-        )}
         
         <p className="text-gray-400 text-sm mb-4 line-clamp-2 min-h-[40px]">
           {service.description || 'Professional boosting service'}
