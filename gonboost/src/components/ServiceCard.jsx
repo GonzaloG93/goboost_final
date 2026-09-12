@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from '../i18n';
+import { DEFAULT_LANGUAGE } from '../i18n';
 import { generateServiceSlug } from '../utils/urlHelpers';
 import { FaClock, FaStar, FaEye, FaShoppingCart, FaCheck, FaGamepad } from 'react-icons/fa';
 import axios from '../utils/axiosConfig';
 
 const ServiceCard = ({ service }) => {
-  // Slug para la navegación y fallback de URL
   const serviceSlug = generateServiceSlug(service);
   
-  // ID exclusivo para acciones de backend (MongoDB ID)
-  const serviceId = service._id || service.id;
+  // Conversión segura: aseguramos que el _id sea un string plano aunque venga como objeto de Mongoose
+  const rawId = service._id || service.id;
+  const serviceId = rawId ? (typeof rawId === 'object' ? rawId.toString() : String(rawId)) : serviceSlug;
   
   const { i18n } = useTranslation();
   const currentLang = i18n.language;
@@ -23,8 +23,9 @@ const ServiceCard = ({ service }) => {
 
   useEffect(() => {
     const fetchReviewStats = async () => {
-      // ⚠️ Validación estricta: Solo consultamos si tenemos un ID real de Mongo (longitud típica o que no sea un slug)
-      if (!serviceId || serviceId === 'undefined' || serviceId.includes('-')) return; 
+      // Validamos estrictamente que sea un ID de MongoDB válido (24 caracteres hexadecimales)
+      const isMongoId = /^[0-9a-fA-F]{24}$/.test(serviceId);
+      if (!isMongoId) return; 
       
       try {
         const response = await axios.get(`/reviews/service/${serviceId}/stats`);
@@ -36,7 +37,7 @@ const ServiceCard = ({ service }) => {
           });
         }
       } catch (error) {
-        // Silenciamos el error en consola para evitar ruido si el servicio no tiene reviews creadas aún
+        // Silenciar errores si el servicio no tiene reviews aún
       }
     };
 
@@ -137,7 +138,7 @@ const ServiceCard = ({ service }) => {
           </Link>
           
           <Link
-             to={`${prefix}/order/${serviceId || serviceSlug}`}
+             to={`${prefix}/order/${serviceId}`}
              state={{ service, fixedPrice: price }}
              className="flex-1 py-2.5 px-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 shadow-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white hover:shadow-cyan-500/30"
           >
