@@ -7,9 +7,11 @@ import { FaClock, FaStar, FaEye, FaShoppingCart, FaCheck, FaGamepad } from 'reac
 import axios from '../utils/axiosConfig';
 
 const ServiceCard = ({ service }) => {
-  // ✅ Captura robusta: si _id no está, busca id, y como último recurso usa el slug generado
+  // Slug para la navegación y fallback de URL
   const serviceSlug = generateServiceSlug(service);
-  const serviceId = service._id || service.id || serviceSlug;
+  
+  // ID exclusivo para acciones de backend (MongoDB ID)
+  const serviceId = service._id || service.id;
   
   const { i18n } = useTranslation();
   const currentLang = i18n.language;
@@ -21,7 +23,8 @@ const ServiceCard = ({ service }) => {
 
   useEffect(() => {
     const fetchReviewStats = async () => {
-      if (!serviceId || serviceId === 'undefined') return; 
+      // ⚠️ Validación estricta: Solo consultamos si tenemos un ID real de Mongo (longitud típica o que no sea un slug)
+      if (!serviceId || serviceId === 'undefined' || serviceId.includes('-')) return; 
       
       try {
         const response = await axios.get(`/reviews/service/${serviceId}/stats`);
@@ -33,7 +36,7 @@ const ServiceCard = ({ service }) => {
           });
         }
       } catch (error) {
-        console.error('Error fetching reviews for ServiceCard:', error);
+        // Silenciamos el error en consola para evitar ruido si el servicio no tiene reviews creadas aún
       }
     };
 
@@ -134,7 +137,7 @@ const ServiceCard = ({ service }) => {
           </Link>
           
           <Link
-             to={`${prefix}/order/${serviceId}`}
+             to={`${prefix}/order/${serviceId || serviceSlug}`}
              state={{ service, fixedPrice: price }}
              className="flex-1 py-2.5 px-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 shadow-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white hover:shadow-cyan-500/30"
           >
