@@ -15,6 +15,14 @@ const boostServiceSchema = new mongoose.Schema({
     trim: true,
     minlength: [10, 'La descripción debe tener al menos 10 caracteres']
   },
+  // Nombre de archivo dentro de frontend/public/assets/banners/ (ej: "poe2-starter.jpg").
+  // Vacío = usa el banner default. Se sube el archivo a mano a esa carpeta,
+  // acá solo se guarda el nombre.
+  bannerImage: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   basePrice: { 
     type: Number, 
     required: false,

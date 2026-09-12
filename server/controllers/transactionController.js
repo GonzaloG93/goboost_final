@@ -1,346 +1,249 @@
-// backend/controllers/transactionController.js - PRODUCTION VERSION
 import Transaction from '../models/Transaction.js';
-import User from '../models/User.js';
-import mongoose from 'mongoose';
+import Order from '../models/Order.js'; // Necesario para buscar y actualizar la orden
 
-// ✅ VALIDATION HELPER
-const isValidObjectId = (id) => {
-  return mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id);
-};
-
-// ✅ GET USER TRANSACTION HISTORY
+// @desc    Obtener transacciones del usuario autenticado con filtros y paginación
+// @route   GET /api/transactions
 export const getUserTransactions = async (req, res) => {
   try {
-    const { page = 1, limit = 20, type, startDate, endDate } = req.query;
+    const { type, status, page = 1, limit = 10 } = req.query;
     
-    // Build query
+    // Filtro inicial limitando al usuario autenticado
     const query = { user: req.user._id };
-    
     if (type) query.type = type;
-    
-    // Date range filter
-    if (startDate || endDate) {
-      query.createdAt = {};
-      if (startDate) query.createdAt.$gte = new Date(startDate);
-      if (endDate) query.createdAt.$lte = new Date(endDate);
-    }
+    if (status) query.status = status;
 
-    // Execute query with pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
     const transactions = await Transaction.find(query)
       .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .populate('metadata.order', 'orderNumber service')
-      .lean();
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('metadata.order', 'orderNumber totalPrice');
 
     const total = await Transaction.countDocuments(query);
 
-    // Calculate statistics
-    const stats = await Transaction.aggregate([
-      { $match: query },
-      {
-        $group: {
-          _id: '$type',
-          count: { $sum: 1 },
-          totalAmount: { $sum: '$amount' }
-        }
-      }
-    ]);
-
     res.json({
       success: true,
-      data: {
-        transactions,
-        stats,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(total / limit),
-          totalItems: total,
-          itemsPerPage: parseInt(limit)
-        }
-      }
+      count: transactions.length,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / limit),
+      data: transactions,
+      message: 'Transacciones obtenidas correctamente'
     });
   } catch (error) {
-    console.error('Error fetching transactions:', error.message);
-    
-    res.status(500).json({ 
+    console.error('Error al obtener transacciones del usuario:', error);
+    res.status(500).json({
       success: false,
-      message: 'Error fetching transactions',
-      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
+      message: 'Error al obtener transacciones del usuario',
+      error: error.message
     });
   }
 };
 
-// ✅ CREATE NEW TRANSACTION
-export const createTransaction = async (req, res) => {
-  const session = await mongoose.startSession();
-  
+// @desc    Obtener el balance actual del usuario e historial resumido
+// @route   GET /api/transactions/balance
+export const getBalance = async (req, res) => {
   try {
-    session.startTransaction();
-    
-    const transactionData = {
-      ...req.body,
-      user: req.user._id,
-      status: 'pending'
-    };
-
-    // Validate required fields
-    const requiredFields = ['type', 'amount'];
-    const missingFields = requiredFields.filter(field => !transactionData[field]);
-    
-    if (missingFields.length > 0) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        success: false,
-        message: `Missing required fields: ${missingFields.join(', ')}`
-      });
-    }
-
-    // Validate amount
-    if (transactionData.amount <= 0) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        success: false,
-        message: 'Amount must be greater than 0'
-      });
-    }
-
-    // Create transaction
-    const transaction = new Transaction(transactionData);
-    await transaction.save({ session });
-
-    // Update user balance if transaction is deposit or withdrawal
-    if (transactionData.type === 'deposit') {
-      await User.findByIdAndUpdate(
-        req.user._id,
-        { $inc: { balance: transactionData.amount } },
-        { session }
-      );
-    } else if (transactionData.type === 'withdrawal') {
-      // Check if user has sufficient balance
-      const user = await User.findById(req.user._id).session(session);
-      if (user.balance < transactionData.amount) {
-        await session.abortTransaction();
-        return res.status(400).json({ 
-          success: false,
-          message: 'Insufficient balance for withdrawal'
-        });
+    // Calculamos los totales según las transacciones completadas del usuario
+    const balanceStats = await Transaction.aggregate([
+      {
+        $match: {
+          user: req.user._id,
+          status: 'completed'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalDeposits: {
+            $sum: { $cond: [{ $eq: ['$type', 'deposit'] }, '$amount', 0] }
+          },
+          totalWithdrawals: {
+            $sum: { $cond: [{ $eq: ['$type', 'withdrawal'] }, '$amount', 0] }
+          },
+          totalPayments: {
+            $sum: { $cond: [{ $eq: ['$type', 'payment'] }, '$amount', 0] }
+          }
+        }
       }
-      
-      await User.findByIdAndUpdate(
-        req.user._id,
-        { $inc: { balance: -transactionData.amount } },
-        { session }
-      );
-    }
-
-    // Commit transaction
-    await session.commitTransaction();
-
-    // Populate data
-    await transaction.populate([
-      { path: 'metadata.order', select: 'orderNumber service' },
-      { path: 'user', select: 'name email username' }
     ]);
+
+    const stats = balanceStats[0] || { totalDeposits: 0, totalWithdrawals: 0, totalPayments: 0 };
+    const calculatedBalance = stats.totalDeposits - stats.totalWithdrawals - stats.totalPayments;
+
+    res.json({
+      success: true,
+      data: {
+        balance: req.user.balance !== undefined ? req.user.balance : calculatedBalance,
+        stats
+      },
+      message: 'Balance obtenido exitosamente'
+    });
+  } catch (error) {
+    console.error('Error al obtener balance:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener balance',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Crear una nueva transacción
+// @route   POST /api/transactions
+export const createTransaction = async (req, res) => {
+  try {
+    const { amount, type, description, metadata } = req.body;
+
+    const transaction = await Transaction.create({
+      user: req.user._id,
+      amount,
+      type,
+      description,
+      metadata,
+      status: req.body.status || 'pending'
+    });
 
     res.status(201).json({
       success: true,
-      message: 'Transaction created successfully',
-      data: transaction
-    });
-
-  } catch (error) {
-    await session.abortTransaction();
-    
-    console.error('Error creating transaction:', error.message);
-    
-    let statusCode = 500;
-    let errorMessage = 'Error creating transaction';
-    
-    if (error.name === 'ValidationError') {
-      statusCode = 400;
-      errorMessage = 'Invalid transaction data';
-    }
-    
-    res.status(statusCode).json({ 
-      success: false,
-      message: errorMessage,
-      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
-    });
-  } finally {
-    await session.endSession();
-  }
-};
-
-// ✅ GET CURRENT BALANCE
-export const getBalance = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).select('balance');
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    // Calculate additional statistics
-    const currentMonth = new Date();
-    currentMonth.setDate(1);
-    currentMonth.setHours(0, 0, 0, 0);
-
-    const [monthlyStats, totalStats] = await Promise.all([
-      // Monthly statistics
-      Transaction.aggregate([
-        {
-          $match: {
-            user: req.user._id,
-            status: 'completed',
-            createdAt: { $gte: currentMonth }
-          }
-        },
-        {
-          $group: {
-            _id: '$type',
-            count: { $sum: 1 },
-            totalAmount: { $sum: '$amount' }
-          }
-        }
-      ]),
-      
-      // Total statistics
-      Transaction.aggregate([
-        {
-          $match: {
-            user: req.user._id,
-            status: 'completed'
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            totalDeposits: {
-              $sum: { $cond: [{ $eq: ['$type', 'deposit'] }, '$amount', 0] }
-            },
-            totalWithdrawals: {
-              $sum: { $cond: [{ $eq: ['$type', 'withdrawal'] }, '$amount', 0] }
-            },
-            totalTransactions: { $sum: 1 }
-          }
-        }
-      ])
-    ]);
-
-    // Get recent transactions
-    const recentTransactions = await Transaction.find({ user: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate('metadata.order', 'orderNumber')
-      .select('type amount status createdAt')
-      .lean();
-
-    res.json({
-      success: true,
-      data: {
-        balance: user.balance || 0,
-        monthlyStats: monthlyStats.reduce((acc, stat) => {
-          acc[stat._id] = stat;
-          return acc;
-        }, {}),
-        totalStats: totalStats[0] || {},
-        recentTransactions
-      }
+      data: transaction,
+      message: 'Transacción creada exitosamente'
     });
   } catch (error) {
-    console.error('Error fetching balance:', error.message);
-    
-    res.status(500).json({ 
+    console.error('Error al crear transacción:', error);
+    res.status(400).json({
       success: false,
-      message: 'Error fetching balance information',
-      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
+      message: 'Error al crear la transacción',
+      error: error.message
     });
   }
 };
 
-// ✅ UPDATE TRANSACTION STATUS
+// @desc    Actualizar estado de una transacción
+// @route   PUT /api/transactions/:id/status
 export const updateTransactionStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, notes } = req.body;
-
-    if (!isValidObjectId(id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid transaction ID'
-      });
-    }
-
-    const validStatuses = ['pending', 'completed', 'failed', 'cancelled'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid status. Valid options: ${validStatuses.join(', ')}`
-      });
-    }
+    const { status } = req.body;
 
     const transaction = await Transaction.findById(id);
+
     if (!transaction) {
       return res.status(404).json({
         success: false,
-        message: 'Transaction not found'
+        message: 'Transacción no encontrada'
       });
     }
 
-    // Verify ownership
+    // Verificar pertenencia o rol de admin
     if (transaction.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: 'You do not have permission to update this transaction'
+        message: 'No tienes permiso para actualizar esta transacción'
       });
     }
 
-    // Update transaction
     transaction.status = status;
-    if (notes) {
-      transaction.notes = transaction.notes ? `${transaction.notes}\n${notes}` : notes;
-    }
-
-    // If status changed to completed and it's a deposit, update user balance
-    if (status === 'completed' && transaction.status !== 'completed' && transaction.type === 'deposit') {
-      await User.findByIdAndUpdate(
-        transaction.user,
-        { $inc: { balance: transaction.amount } }
-      );
-    }
-
     await transaction.save();
 
     res.json({
       success: true,
-      message: 'Transaction status updated successfully',
-      data: {
-        _id: transaction._id,
-        type: transaction.type,
-        amount: transaction.amount,
-        status: transaction.status,
-        updatedAt: transaction.updatedAt
-      }
+      data: transaction,
+      message: 'Estado de la transacción actualizado exitosamente'
     });
-
   } catch (error) {
-    console.error('Error updating transaction:', error.message);
-    
-    res.status(500).json({
+    console.error('Error al actualizar transacción:', error);
+    res.status(400).json({
       success: false,
-      message: 'Error updating transaction status'
+      message: 'Error al actualizar la transacción',
+      error: error.message
     });
   }
 };
 
-// ✅ COMPLETE EXPORT
-export default {
-  getUserTransactions,
-  createTransaction,
-  getBalance,
-  updateTransactionStatus
+// @desc    Procesar Webhook de Ko-fi (Verifica pago, actualiza Orden y crea Transacción)
+// @route   POST /api/transactions/webhooks/kofi
+export const kofiWebhook = async (req, res) => {
+  try {
+    if (!req.body.data) {
+      return res.status(400).send('No data received');
+    }
+
+    const paymentData = JSON.parse(req.body.data);
+
+    const KOFI_TOKEN = process.env.KOFI_VERIFICATION_TOKEN;
+    if (paymentData.verification_token !== KOFI_TOKEN) {
+      return res.status(401).send('Unauthorized');
+    }
+
+    const message = paymentData.message || '';
+    const matchOrder = message.match(/(ORD-[0-9]+-[0-9A-Z]+)/i); 
+
+    if (matchOrder) {
+      const orderNumber = matchOrder[1];
+      const order = await Order.findOne({ orderNumber });
+
+      if (order) {
+        // 1. Actualizamos la orden
+        order.status = 'paid'; 
+        order.paymentStatus = 'paid';
+        order.paidAt = new Date();
+        order.paymentProviderId = paymentData.kofi_transaction_id;
+        order.paymentDetails = paymentData;
+
+        if (typeof order.addNote === 'function') {
+          await order.addNote(`Pago recibido vía Ko-fi por $${paymentData.amount}`, 'system');
+        }
+        await order.save();
+
+        // 2. Creamos la transacción automática en el historial del usuario
+        await Transaction.create({
+          user: order.user, 
+          amount: parseFloat(paymentData.amount),
+          type: 'payment',
+          description: `Pago de orden ${orderNumber} vía Ko-fi`,
+          metadata: { 
+            order: order._id,
+            kofi_transaction_id: paymentData.kofi_transaction_id,
+            kofi_url: paymentData.url
+          },
+          status: 'completed'
+        });
+
+        console.log(`✅ Orden ${orderNumber} pagada y transacción generada vía Ko-fi.`);
+      }
+    }
+
+    res.status(200).send('Webhook processed');
+  } catch (error) {
+    console.error('❌ Error processing Ko-fi webhook:', error);
+    res.status(500).send('Server Error');
+  }
+};
+
+// @desc    Notificar que el usuario ha realizado el pago manualmente
+// @route   POST /api/transactions/orders/:id/notify-payment
+export const notifyManualPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    order.paymentStatus = 'pending_verification';
+    order.status = 'awaiting_payment_confirmation';
+    
+    if (typeof order.addNote === 'function') {
+      await order.addNote('El usuario ha notificado que realizó el pago manualmente.', 'system');
+    }
+    
+    await order.save();
+
+    res.json({ success: true, message: 'Payment notification received' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 };

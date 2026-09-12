@@ -1,24 +1,15 @@
-// backend/routes/payments.js - VERSIÓN COMPLETA CORREGIDA
 import express from 'express';
 import Order from '../models/Order.js';
 import User from '../models/User.js';
-import Transaction from '../models/Transaction.js';
 import Payment from '../models/Payment.js';
 import PaymentProof from '../models/PaymentProof.js';
 import { auth } from '../middleware/authMiddleware.js';
-import { validatePaymentProcess } from '../middleware/validation.js';
-import PayPalController from '../controllers/paypalController.js';
 import mongoose from 'mongoose';
 
 const router = express.Router();
 
 console.log('🔄 Payment routes loaded successfully');
-console.log('✅ POST /paypal/create está disponible');
 console.log('✅ POST /payments/proof/upload está disponible');
-
-// ======================
-// ✅ RUTAS DE PRUEBA
-// ======================
 
 router.get('/test-public', (req, res) => {
   res.json({
@@ -28,10 +19,6 @@ router.get('/test-public', (req, res) => {
     endpoint: '/api/payments/test-public'
   });
 });
-
-// ======================
-// MIDDLEWARE ESPECÍFICO
-// ======================
 
 const verifyOrderOwnership = async (req, res, next) => {
   try {
@@ -94,11 +81,6 @@ const adminOnly = (req, res, next) => {
   next();
 };
 
-// ======================
-// 1. ESTADO Y MÉTODOS DE PAGO
-// ======================
-
-// ✅ OBTENER ESTADO DE PAGO DE UNA ORDEN
 router.get('/status/:orderId', auth, async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -173,22 +155,9 @@ router.get('/status/:orderId', auth, async (req, res) => {
   }
 });
 
-// ✅ LISTAR MÉTODOS DE PAGO DISPONIBLES
 router.get('/methods', auth, async (req, res) => {
   try {
     const paymentMethods = [
-      {
-        id: 'paypal',
-        name: 'PayPal',
-        description: 'Pago seguro con tarjeta de crédito/débito o cuenta PayPal',
-        enabled: true,
-        type: 'automatic',
-        currencies: ['USD', 'EUR', 'MXN'],
-        fees: { percentage: 3.5, fixed: 0.30 },
-        features: ['instant', 'refundable', 'secure'],
-        icon: 'paypal',
-        instructions: 'Serás redirigido a PayPal para completar el pago'
-      },
       {
         id: 'binance',
         name: 'Binance Pay',
@@ -200,6 +169,18 @@ router.get('/methods', auth, async (req, res) => {
         features: ['crypto', 'low_fees', 'manual_verification'],
         icon: 'binance',
         instructions: 'Realiza la transferencia y sube el comprobante para verificación'
+      },
+      {
+        id: 'kofi',
+        name: 'Ko-fi (Tarjeta)',
+        description: 'Pago con Tarjeta de Crédito/Débito vía Ko-fi',
+        enabled: true,
+        type: 'manual',
+        currencies: ['USD'],
+        fees: { percentage: 0, fixed: 0 },
+        features: ['card', 'manual_verification'],
+        icon: 'kofi',
+        instructions: 'Realiza el pago en Ko-fi por el monto exacto y sube el comprobante para verificación'
       }
     ];
 
@@ -219,73 +200,8 @@ router.get('/methods', auth, async (req, res) => {
   }
 });
 
-// ======================
-// 2. PAYPAL INTEGRATION
-// ======================
-
-// ✅ CREAR ORDEN DE PAYPAL
-router.post('/paypal/create', auth, verifyOrderOwnership, async (req, res) => {
-  try {
-    console.log('🎯 PAYPAL/CREATE ROUTE HIT!');
-    
-    if (req.order.paymentStatus === 'paid' || req.order.paymentStatus === 'completed') {
-      return res.status(400).json({
-        success: false,
-        error: 'ORDER_ALREADY_PAID',
-        message: 'Esta orden ya ha sido pagada'
-      });
-    }
-
-    // ✅ Establecer método de pago como paypal
-    req.order.paymentMethod = 'paypal';
-    await req.order.save();
-
-    return PayPalController.createOrder(req, res);
-    
-  } catch (error) {
-    console.error('❌ Error en paypal/create:', error);
-    res.status(500).json({
-      success: false,
-      error: 'PAYPAL_CREATE_ERROR',
-      message: 'Error creando pago PayPal: ' + error.message
-    });
-  }
-});
-
-// ✅ CAPTURAR PAGO PAYPAL
-router.post('/paypal/capture', auth, async (req, res) => {
-  try {
-    return PayPalController.capturePayment(req, res);
-  } catch (error) {
-    console.error('❌ Error capturing PayPal payment:', error);
-    res.status(500).json({
-      success: false,
-      error: 'PAYPAL_CAPTURE_ERROR',
-      message: 'Error capturando pago PayPal'
-    });
-  }
-});
-
-// ✅ WEBHOOK PAYPAL
-router.post('/paypal/webhook', async (req, res) => {
-  try {
-    console.log('📩 PayPal webhook received');
-    return PayPalController.handleWebhook(req, res);
-  } catch (error) {
-    console.error('❌ Error processing PayPal webhook:', error);
-    res.status(500).json({ success: false, error: 'WEBHOOK_PROCESSING_ERROR' });
-  }
-});
-
-// ======================
-// 3. BINANCE PAY INTEGRATION
-// ======================
-
-// ✅ CREAR PAGO BINANCE
 router.post('/binance/create', auth, verifyOrderOwnership, async (req, res) => {
   try {
-    const { currency = 'USDT' } = req.body;
-    
     if (req.order.paymentStatus === 'paid' || req.order.paymentStatus === 'completed') {
       return res.status(400).json({
         success: false,
@@ -314,7 +230,6 @@ router.post('/binance/create', auth, verifyOrderOwnership, async (req, res) => {
 
     await payment.save();
     
-    // ✅ Establecer método de pago como binance
     req.order.paymentMethod = 'binance';
     req.order.paymentReference = payment._id;
     await req.order.save();
@@ -341,21 +256,11 @@ router.post('/binance/create', auth, verifyOrderOwnership, async (req, res) => {
   }
 });
 
-// ======================
-// 4. SUBIR COMPROBANTE DE PAGO - CORREGIDO
-// ======================
-
-// ✅ SUBIR COMPROBANTE DE PAGO - VERSIÓN FINAL FUNCIONAL
 router.post('/proof/upload', auth, async (req, res) => {
   try {
-    const { orderId, imageUrl, description, transactionHash } = req.body;
+    const { orderId, imageUrl, description, transactionHash, paymentMethod } = req.body;
+    const provider = ['binance', 'kofi'].includes(paymentMethod) ? paymentMethod : 'binance';
     
-    console.log('📸 [PROOF/UPLOAD] ========== INICIO ==========');
-    console.log('📦 orderId:', orderId);
-    console.log('📦 hasImage:', !!imageUrl);
-    console.log('👤 userId:', req.user._id);
-    
-    // ===== VALIDACIONES =====
     if (!orderId) {
       return res.status(400).json({
         success: false,
@@ -380,7 +285,6 @@ router.post('/proof/upload', auth, async (req, res) => {
       });
     }
 
-    // ===== BUSCAR ORDEN =====
     const order = await Order.findById(orderId);
     
     if (!order) {
@@ -391,9 +295,6 @@ router.post('/proof/upload', auth, async (req, res) => {
       });
     }
 
-    console.log('✅ Orden encontrada:', order.orderNumber);
-
-    // ===== VERIFICAR PROPIEDAD =====
     const isOwner = order.user.toString() === req.user._id.toString();
     const isAdmin = req.user.role === 'admin';
     
@@ -405,9 +306,6 @@ router.post('/proof/upload', auth, async (req, res) => {
       });
     }
 
-    console.log('✅ Usuario autorizado');
-
-    // ===== VERIFICAR QUE NO ESTÉ PAGADA =====
     if (order.paymentStatus === 'paid' || order.paymentStatus === 'completed') {
       return res.status(400).json({
         success: false,
@@ -416,9 +314,6 @@ router.post('/proof/upload', auth, async (req, res) => {
       });
     }
 
-    // ===== CREAR COMPROBANTE =====
-    console.log('📝 Creando PaymentProof...');
-    
     const proof = new PaymentProof({
       orderId: order._id,
       userId: req.user._id,
@@ -429,16 +324,14 @@ router.post('/proof/upload', auth, async (req, res) => {
     });
 
     await proof.save();
-    console.log('✅ PaymentProof creado:', proof._id);
 
-    // ===== CREAR O ACTUALIZAR PAGO =====
     let payment = await Payment.findOne({ order: order._id });
     
     if (!payment) {
       payment = new Payment({
         order: order._id,
         user: req.user._id,
-        provider: 'binance',  // ✅ Siempre binance para comprobantes
+        provider: provider,
         amount: order.totalPrice,
         currency: 'USD',
         status: 'pending_verification',
@@ -448,34 +341,25 @@ router.post('/proof/upload', auth, async (req, res) => {
         }
       });
       await payment.save();
-      console.log('✅ Payment creado:', payment._id);
-      
       order.paymentReference = payment._id;
     } else {
       payment.metadata = payment.metadata || {};
       payment.metadata.proofId = proof._id;
       payment.metadata.proofSubmittedAt = new Date();
       payment.status = 'pending_verification';
-      payment.provider = 'binance';  // ✅ Asegurar provider
+      payment.provider = provider;
       await payment.save();
-      console.log('✅ Payment actualizado:', payment._id);
     }
 
-    // ===== ACTUALIZAR ORDEN =====
     order.paymentStatus = 'pending_verification';
-    order.paymentMethod = 'binance';  // ✅ FORZAR método de pago a binance
+    order.paymentMethod = provider;
     await order.save();
-    console.log('✅ Orden actualizada - paymentMethod:', order.paymentMethod);
 
-    // ===== AGREGAR NOTA AL HISTORIAL =====
     await order.addNote(
-      `Comprobante de pago subido. Método: Binance Pay. TX: ${transactionHash || 'N/A'}`,
+      `Comprobante de pago subido. Método: ${provider === 'kofi' ? 'Ko-fi' : 'Binance Pay'}. TX: ${transactionHash || 'N/A'}`,
       'system'
     );
 
-    console.log('📸 [PROOF/UPLOAD] ========== ÉXITO ==========');
-
-    // ===== RESPUESTA EXITOSA =====
     res.status(201).json({
       success: true,
       data: {
@@ -484,7 +368,7 @@ router.post('/proof/upload', auth, async (req, res) => {
         orderNumber: order.orderNumber,
         paymentId: payment._id,
         status: 'pending_verification',
-        paymentMethod: 'binance',
+        paymentMethod: provider,
         imageUrl: proof.imageUrl,
         estimatedTime: '1-12 hours',
         supportContact: 'support@gonboost.com'
@@ -494,16 +378,6 @@ router.post('/proof/upload', auth, async (req, res) => {
 
   } catch (error) {
     console.error('❌ [PROOF/UPLOAD] ERROR:', error.message);
-    console.error('❌ Stack:', error.stack);
-    
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({
-        success: false,
-        error: 'VALIDATION_ERROR',
-        message: 'Validation error: ' + Object.values(error.errors).map(e => e.message).join(', ')
-      });
-    }
-    
     res.status(500).json({
       success: false,
       error: 'PROOF_UPLOAD_ERROR',
@@ -512,7 +386,6 @@ router.post('/proof/upload', auth, async (req, res) => {
   }
 });
 
-// ✅ OBTENER COMPROBANTES DE UNA ORDEN
 router.get('/proof/:orderId', auth, async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -546,10 +419,7 @@ router.get('/proof/:orderId', auth, async (req, res) => {
       });
     }
 
-    const proofs = await PaymentProof.find({ orderId: orderId })
-      .sort({ createdAt: -1 });
-
-    // Agregar paymentId del Payment asociado
+    const proofs = await PaymentProof.find({ orderId: orderId }).sort({ createdAt: -1 });
     const payment = await Payment.findOne({ order: orderId });
     
     const proofsWithPaymentId = proofs.map(proof => ({
@@ -573,11 +443,6 @@ router.get('/proof/:orderId', auth, async (req, res) => {
   }
 });
 
-// ======================
-// 5. ADMIN ENDPOINTS
-// ======================
-
-// ✅ VERIFICAR PAGO MANUAL (ADMIN)
 router.post('/verify/:paymentId', auth, adminOnly, async (req, res) => {
   try {
     const { paymentId } = req.params;
@@ -610,7 +475,6 @@ router.post('/verify/:paymentId', auth, adminOnly, async (req, res) => {
     payment.metadata.verificationNotes = notes;
     await payment.save();
 
-    // Actualizar comprobante
     if (payment.metadata.proofId) {
       await PaymentProof.findByIdAndUpdate(payment.metadata.proofId, {
         status: status === 'completed' ? 'approved' : 'rejected',
@@ -620,13 +484,12 @@ router.post('/verify/:paymentId', auth, adminOnly, async (req, res) => {
       });
     }
 
-    // Actualizar orden
     if (status === 'completed') {
       const order = await Order.findById(payment.order);
       order.paymentStatus = 'paid';
       order.status = 'paid';
       order.paidAt = new Date();
-      order.paymentMethod = payment.provider; // ✅ Mantener el método de pago
+      order.paymentMethod = payment.provider;
       await order.save();
       
       await order.addNote(
@@ -634,8 +497,6 @@ router.post('/verify/:paymentId', auth, adminOnly, async (req, res) => {
         'system'
       );
     }
-
-    console.log(`✅ Payment ${paymentId} verified: ${oldStatus} → ${payment.status}`);
 
     res.json({
       success: true,
@@ -659,7 +520,6 @@ router.post('/verify/:paymentId', auth, adminOnly, async (req, res) => {
   }
 });
 
-// ✅ LISTAR TODOS LOS PAGOS (ADMIN)
 router.get('/admin/list', auth, adminOnly, async (req, res) => {
   try {
     const { page = 1, limit = 50, status, provider } = req.query;
@@ -704,7 +564,6 @@ router.get('/admin/list', auth, adminOnly, async (req, res) => {
   }
 });
 
-// ✅ LISTAR COMPROBANTES PENDIENTES (ADMIN)
 router.get('/admin/proofs/pending', auth, adminOnly, async (req, res) => {
   try {
     const pendingProofs = await PaymentProof.find({ status: 'pending' })
@@ -728,11 +587,6 @@ router.get('/admin/proofs/pending', auth, adminOnly, async (req, res) => {
   }
 });
 
-// ======================
-// 6. ENDPOINTS DE USUARIO
-// ======================
-
-// ✅ LISTAR PAGOS DEL USUARIO
 router.get('/user/history', auth, async (req, res) => {
   try {
     const { limit = 20, page = 1 } = req.query;
@@ -765,17 +619,12 @@ router.get('/user/history', auth, async (req, res) => {
   }
 });
 
-// ======================
-// 7. HEALTH CHECK
-// ======================
-
 router.get('/health', auth, async (req, res) => {
   try {
     const health = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       services: {
-        paypal: { enabled: !!(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET) },
         database: {
           payments: await Payment.countDocuments({}),
           proofs: await PaymentProof.countDocuments({}),

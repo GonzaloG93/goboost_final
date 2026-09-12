@@ -65,6 +65,7 @@ const ServiceDetail = () => {
   const [relatedServices, setRelatedServices] = useState([]);
   const [activeFaq, setActiveFaq] = useState(null);
   const [error, setError] = useState(null);
+  const [reviewStats, setReviewStats] = useState({ averageRating: 0, totalReviews: 0 });
 
   const actualId = extractIdFromSlug(serviceId);
   const serviceSlug = service ? generateServiceSlug(service) : '';
@@ -90,6 +91,23 @@ const ServiceDetail = () => {
       }
       
       setService(serviceData);
+
+      // Traer el rating real del servicio (no bloquea la carga si falla)
+      const idForReviews = serviceData?._id || actualId;
+      if (idForReviews) {
+        axios.get(`/reviews/service/${idForReviews}/stats`)
+          .then((res) => {
+            if (res.data?.success) {
+              setReviewStats({
+                averageRating: res.data.averageRating || 0,
+                totalReviews: res.data.totalReviews || 0
+              });
+            }
+          })
+          .catch(() => {
+            // Sin reviews o error de red: no mostramos el widget, no rompemos la página
+          });
+      }
       
       if (serviceData?.game) {
         try {
@@ -236,7 +254,7 @@ const ServiceDetail = () => {
 
   const stats = service ? [
     { icon: FaCheckCircle, value: '99.9%', label: t('serviceDetail.completionRate'), color: 'text-green-400' },
-    { icon: FaUsers, value: '52K+', label: t('serviceDetail.ordersCompleted'), color: 'text-blue-400' },
+    { icon: FaUsers, value: '10K+', label: t('serviceDetail.ordersCompleted'), color: 'text-blue-400' },
     { icon: FaCrown, value: '4.9/5', label: t('serviceDetail.customerRating'), color: 'text-yellow-400' },
     { icon: FaBolt, value: '24/7', label: t('serviceDetail.supportAvailable'), color: 'text-cyan-400' },
   ] : [];
@@ -313,8 +331,19 @@ const ServiceDetail = () => {
           {/* Hero Section */}
           <div className="relative rounded-3xl overflow-hidden shadow-2xl mb-8 border border-gray-700">
             <div className={`h-2 bg-gradient-to-r ${gameColor}`}></div>
-            <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 p-8 md:p-12">
-              
+            <div
+              className={`relative p-8 md:p-12 overflow-hidden ${!service.bannerImage ? 'bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800' : ''}`}
+              style={service.bannerImage ? {
+                backgroundImage: `url(${service.bannerImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              } : undefined}
+            >
+              {service.bannerImage && (
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-950/90 via-gray-900/85 to-gray-950/90" />
+              )}
+              <div className="relative">
+
               {/* Badges */}
               <div className="flex flex-wrap items-center gap-3 mb-4">
                 <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-700/50 backdrop-blur-sm text-cyan-300 rounded-full text-sm font-medium border border-gray-600">
@@ -324,12 +353,20 @@ const ServiceDetail = () => {
                 <span className="px-3 py-1.5 bg-gray-700/50 backdrop-blur-sm text-gray-300 rounded-full text-sm font-medium border border-gray-600">
                   {formatServiceType(service.serviceType)}
                 </span>
-                <span className="flex items-center gap-1 px-3 py-1.5 bg-yellow-400/10 backdrop-blur-sm text-yellow-300 rounded-full text-sm border border-yellow-500/30">
-                  {[...Array(5)].map((_, i) => (
-                    <FaStar key={i} className="text-yellow-400 text-xs" />
-                  ))}
-                  <span className="ml-1">{t('serviceDetail.reviewsCount', { count: '52K+' })}</span>
-                </span>
+                {reviewStats.totalReviews > 0 && (
+                  <span className="flex items-center gap-1 px-3 py-1.5 bg-yellow-400/10 backdrop-blur-sm text-yellow-300 rounded-full text-sm border border-yellow-500/30">
+                    {[...Array(5)].map((_, i) => (
+                      <FaStar
+                        key={i}
+                        className={i < Math.round(reviewStats.averageRating) ? 'text-yellow-400 text-xs' : 'text-gray-600 text-xs'}
+                      />
+                    ))}
+                    <span className="ml-1">
+                      {reviewStats.averageRating.toFixed(1)}/5 ({reviewStats.totalReviews}{' '}
+                      {reviewStats.totalReviews === 1 ? 'review' : 'reviews'})
+                    </span>
+                  </span>
+                )}
               </div>
               
               {/* Title */}
@@ -363,6 +400,7 @@ const ServiceDetail = () => {
                   {t('serviceDetail.orderNow')}
                   <FaChevronRight className="text-sm" />
                 </button>
+              </div>
               </div>
             </div>
           </div>

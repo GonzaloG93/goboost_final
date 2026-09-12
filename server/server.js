@@ -1,4 +1,6 @@
 // backend/server.js
+import 'dotenv/config'; 
+
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -8,10 +10,6 @@ import { fileURLToPath } from 'url';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
-
-console.log('🔄 Loading environment variables...');
-dotenv.config();
 
 import corsOptions from './middleware/cors.js';
 import { setupSocketIO } from './socket/socket.js';
@@ -21,9 +19,10 @@ import apiRoutes from './routes/index.js';
 import adminRoutes from './routes/admin.js';
 import privacyRoutes from './routes/privacyRoutes.js';
 import supportRoutes from './routes/support.js';
-import sitemapRouter      from './routes/sitemap.js';
-import sitemapIndexRouter from './routes/sitemapIndex.js';
+import sitemapRoutes from './routes/sitemap.js';
 import seoRoutes from './routes/seo.js';
+
+console.log('🔄 Environment variables loaded successfully.');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +33,12 @@ const server = createServer(app);
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = process.env.PORT || 5000;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+// Necesario en producción si el server corre detrás de un proxy/balanceador
+// (Render, Railway, Nginx, etc.) para que rate-limit y cookies seguras funcionen bien
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
 
 // ================= CORS =================
 app.use(cors(corsOptions));
@@ -78,11 +83,6 @@ app.use('/api/support', (req, res, next) => {
   next();
 });
 
-// ================= SITEMAPS — van primero, antes de cualquier otra ruta =================
-// ✅ Crítico: deben estar ANTES del app.get('/') y del 404 handler
-app.use('/', sitemapRouter);
-app.use('/', sitemapIndexRouter);
-
 // ================= RUTAS =================
 app.get('/', (req, res) => {
   res.json({
@@ -121,7 +121,8 @@ app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/privacy-policy', privacyRoutes);
 app.use('/api/seo', seoRoutes);
-app.use('/api', apiRoutes);
+app.use('/api', apiRoutes); // 💡 Asumiendo que `apiRoutes` (routes/index.js) monta `/payments` -> `paymentRoutes`
+app.use('/', sitemapRoutes);
 
 // ================= 404 =================
 app.use((req, res) => {
@@ -191,7 +192,6 @@ const startServer = async () => {
       console.log(`🌐 Frontend URL: ${FRONTEND_URL}`);
       console.log(`📡 Socket.IO ready`);
       console.log(`🔗 Health: http://localhost:${PORT}/health`);
-      console.log(`🗺️  Sitemap: http://localhost:${PORT}/sitemap.xml`);
       console.log('='.repeat(50));
     });
     server.on('error', (error) => {

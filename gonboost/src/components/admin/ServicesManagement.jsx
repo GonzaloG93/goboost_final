@@ -1,6 +1,4 @@
 // frontend/src/components/admin/ServicesManagement.jsx
-// VERSIÓN CORREGIDA - estimatedTime ya no se sobreescribe para MoP Raids
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from '../../utils/axiosConfig';
 import { useSocket } from '../../context/SocketContext';
@@ -18,6 +16,40 @@ const ServicesManagement = () => {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [filters, setFilters] = useState({ game: '', category: '', serviceType: '' });
+  const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
+  const [duplicateGroups, setDuplicateGroups] = useState([]);
+  const [loadingDuplicates, setLoadingDuplicates] = useState(false);
+
+  const handleFindDuplicates = async () => {
+    setLoadingDuplicates(true);
+    setShowDuplicatesModal(true);
+    try {
+      const response = await axios.get('/boosts/admin/duplicates');
+      setDuplicateGroups(response.data.duplicateGroups || []);
+    } catch (error) {
+      console.error('❌ Error buscando duplicados:', error);
+      toast.error('Error al buscar duplicados');
+      setShowDuplicatesModal(false);
+    } finally {
+      setLoadingDuplicates(false);
+    }
+  };
+
+  const handleDeleteFromDuplicates = async (serviceId) => {
+    try {
+      await axios.delete(`/boosts/${serviceId}`);
+      setServices(prev => prev.filter(service => service._id !== serviceId));
+      setDuplicateGroups(prev =>
+        prev
+          .map(group => group.filter(s => s._id !== serviceId))
+          .filter(group => group.length > 1)
+      );
+      toast.success('Servicio eliminado');
+    } catch (error) {
+      console.error('❌ Error deleting service:', error);
+      toast.error('Error al eliminar el servicio');
+    }
+  };
 
   const saveLock = useRef(false);
   const { socket, isConnected, isInitialized } = useSocket();
@@ -46,6 +78,7 @@ const ServicesManagement = () => {
     const defaults = {
       // PoE 2
       'poe2_build_starter': 40, 'poe2_build_advanced': 65, 'poe2_build_endgame': 85,
+      'poe2_custom_build': 80,
       'poe2_leveling_40': 25, 'poe2_leveling_70': 55, 'poe2_leveling_90': 95,
       'poe2_starter_pack': 105, 'poe2_endgame_pack': 225,
 
@@ -186,7 +219,13 @@ const ServicesManagement = () => {
       const autoCategory = categorizeService(serviceData.serviceType);
       
       let basePriceValue = 0;
-      if (serviceData.price && !isNaN(parseFloat(serviceData.price))) {
+      const hasValidPrice =
+        serviceData.price !== undefined &&
+        serviceData.price !== null &&
+        serviceData.price !== '' &&
+        !isNaN(parseFloat(serviceData.price));
+
+      if (hasValidPrice) {
         basePriceValue = parseFloat(serviceData.price);
       } else {
         basePriceValue = getDefaultPriceForType(serviceData.serviceType);
@@ -195,6 +234,7 @@ const ServicesManagement = () => {
       const backendData = {
         name: serviceData.name.trim(),
         description: serviceData.description.trim(),
+        bannerImage: serviceData.bannerImage?.trim() || '',
         game: serviceData.game,
         serviceType: serviceData.serviceType,
         basePrice: basePriceValue,
@@ -214,6 +254,7 @@ const ServicesManagement = () => {
           hasBuildSelection: serviceData.serviceType?.includes('build') || 
                             serviceData.serviceType?.includes('_pack') || 
                             serviceData.serviceType === 'custom_build' || 
+                            serviceData.serviceType === 'poe2_custom_build' ||
                             serviceData.serviceType === 'dune_base_construction' ||
                             serviceData.serviceType === 'dune_craft_vehicle' ||
                             serviceData.serviceType?.startsWith('mop_'),
@@ -251,6 +292,7 @@ const ServicesManagement = () => {
         const updateData = {
           name: backendData.name,
           description: backendData.description,
+          bannerImage: backendData.bannerImage,
           price: basePriceValue,
           estimatedTime: backendData.estimatedTime,
           available: backendData.available,
@@ -350,7 +392,7 @@ const ServicesManagement = () => {
       content: { color: 'bg-blue-100 text-blue-800', label: 'PvE Content', icon: '🏆' },
       pvp: { color: 'bg-red-100 text-red-800', label: 'PvP', icon: '⚔️' },
       farming: { color: 'bg-yellow-100 text-yellow-800', label: 'Farming', icon: '💰' },
-      coaching: { color: 'bg-orange-100 text-orange-800', label: 'Coaching', icon: '👨🏫' },
+      coaching: { color: 'bg-orange-100 text-orange-800', label: 'Coaching', icon: '👨‍🏫' },
       competitive: { color: 'bg-amber-100 text-amber-800', label: 'Competitivo', icon: '🎮' }
     };
     const config = categoryMap[category] || { color: 'bg-gray-100 text-gray-800', label: category || 'Otro', icon: '🔧' };
@@ -409,12 +451,20 @@ const ServicesManagement = () => {
           <h1 className="text-3xl font-bold text-gray-800">Gestión de Servicios</h1>
           <p className="text-gray-600 mt-2">Administra todos los servicios de boosting</p>
         </div>
-        <button 
-          onClick={() => setShowCreateModal(true)} 
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center shadow-lg hover:shadow-xl transition-all"
-        >
-          <span className="text-xl mr-2">+</span> Nuevo Servicio
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleFindDuplicates}
+            className="bg-amber-100 hover:bg-amber-200 text-amber-800 px-5 py-3 rounded-lg font-medium flex items-center border border-amber-300 transition-all"
+          >
+            🔍 Buscar Duplicados
+          </button>
+          <button 
+            onClick={() => setShowCreateModal(true)} 
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center shadow-lg hover:shadow-xl transition-all"
+          >
+            <span className="text-xl mr-2">+</span> Nuevo Servicio
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -427,7 +477,7 @@ const ServicesManagement = () => {
         <div className="bg-white rounded-xl shadow-sm p-6 border"><p className="text-sm text-gray-600">Total</p><p className="text-2xl font-bold">{services.length}</p></div>
         <div className="bg-white rounded-xl shadow-sm p-6 border"><p className="text-sm text-gray-600">Activos</p><p className="text-2xl font-bold">{services.filter(s => s.available).length}</p></div>
         <div className="bg-white rounded-xl shadow-sm p-6 border"><p className="text-sm text-gray-600">Packs</p><p className="text-2xl font-bold">{services.filter(s => s.serviceType?.includes('_pack')).length}</p></div>
-        <div className="bg-white rounded-xl shadow-sm p-6 border"><p className="text-sm text-gray-600">Builds/Bases</p><p className="text-2xl font-bold">{services.filter(s => s.serviceType?.includes('build') || s.serviceType === 'custom_build' || s.serviceType === 'dune_base_construction' || s.serviceType === 'dune_craft_vehicle').length}</p></div>
+        <div className="bg-white rounded-xl shadow-sm p-6 border"><p className="text-sm text-gray-600">Builds/Bases</p><p className="text-2xl font-bold">{services.filter(s => s.serviceType?.includes('build') || s.serviceType === 'custom_build' || s.serviceType === 'poe2_custom_build' || s.serviceType === 'dune_base_construction' || s.serviceType === 'dune_craft_vehicle').length}</p></div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
@@ -463,7 +513,7 @@ const ServicesManagement = () => {
                   <span className="bg-cyan-100 text-cyan-800 px-2 py-1 rounded-full text-xs">📋 {service.priceOptions.length} opciones</span>
                 )}
                 {service.serviceType?.includes('_pack') && <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs">📦 Pack</span>}
-                {service.serviceType === 'custom_build' && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">🎨 Custom</span>}
+                {(service.serviceType === 'custom_build' || service.serviceType === 'poe2_custom_build') && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">🎨 Custom Build</span>}
                 {service.serviceType === 'dune_base_construction' && <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full text-xs">🏗️ Base</span>}
                 {service.serviceType === 'dune_craft_vehicle' && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">🏍️ Vehicle</span>}
                 {service.serviceType?.startsWith('mop_') && <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-xs">🐉 MoP Raid</span>}
@@ -497,17 +547,75 @@ const ServicesManagement = () => {
           getDefaultPriceForType={getDefaultPriceForType}
         />
       )}
+
+      {showDuplicatesModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-800">
+                🔍 Servicios Duplicados
+                {!loadingDuplicates && (
+                  <span className="text-sm font-normal text-gray-500 ml-2">
+                    ({duplicateGroups.length} grupo{duplicateGroups.length !== 1 ? 's' : ''})
+                  </span>
+                )}
+              </h2>
+              <button onClick={() => setShowDuplicatesModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">✕</button>
+            </div>
+
+            <div className="p-6">
+              {loadingDuplicates ? (
+                <p className="text-center text-gray-500 py-8">Buscando duplicados...</p>
+              ) : duplicateGroups.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">✅ No se encontraron servicios duplicados.</p>
+              ) : (
+                <div className="space-y-6">
+                  <p className="text-sm text-gray-600">
+                    Mismo juego + tipo + nombre. Se agrupan así, no se borra nada solo — elegí cuál dejar y borrá el resto.
+                  </p>
+                  {duplicateGroups.map((group, idx) => (
+                    <div key={idx} className="border border-amber-200 bg-amber-50 rounded-lg p-4">
+                      <p className="font-semibold text-gray-800 mb-3">
+                        {group[0].name} <span className="text-xs font-normal text-gray-500">({group[0].game} · {group[0].serviceType})</span>
+                      </p>
+                      <div className="space-y-2">
+                        {group.map((svc) => (
+                          <div key={svc._id} className="flex items-center justify-between bg-white rounded-lg border px-4 py-2.5">
+                            <div className="text-sm">
+                              <span className="font-medium text-gray-800">${svc.basePrice ?? 'N/A'}</span>
+                              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${svc.available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {svc.available ? 'Activo' : 'Inactivo'}
+                              </span>
+                              <span className="ml-2 text-gray-400 text-xs">
+                                Creado: {svc.createdAt ? new Date(svc.createdAt).toLocaleDateString('es-ES') : 'N/A'}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteFromDuplicates(svc._id)}
+                              className="text-red-600 hover:text-red-800 text-sm font-medium"
+                            >
+                              🗑️ Eliminar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-// ============================================
-// SERVICE MODAL
-// ============================================
 const ServiceModal = ({ service, onSave, onClose, loading, games, getServiceTypeOptions, formatServiceType, getDefaultPriceForType }) => {
   const [formData, setFormData] = useState({
     name: service?.name || '', 
     description: service?.description || '',
+    bannerImage: service?.bannerImage || '',
     price: service?.basePrice || service?.price || '', 
     estimatedTime: service?.estimatedTime || '2-3 días',
     game: service?.game || '', 
@@ -518,6 +626,46 @@ const ServiceModal = ({ service, onSave, onClose, loading, games, getServiceType
   });
   const [errors, setErrors] = useState({});
   const [descriptionLength, setDescriptionLength] = useState(formData.description.length);
+  const [bannerPreview, setBannerPreview] = useState(service?.bannerImage || '');
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+
+  const handleBannerFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Solo se permiten imágenes');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('La imagen no puede pesar más de 5MB');
+      return;
+    }
+
+    setUploadingBanner(true);
+    try {
+      const uploadData = new FormData();
+      uploadData.append('image', file);
+      const response = await axios.post('/boosts/upload-banner', uploadData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (response.data.success) {
+        setFormData(prev => ({ ...prev, bannerImage: response.data.url }));
+        setBannerPreview(response.data.url);
+        toast.success('Banner subido correctamente');
+      }
+    } catch (error) {
+      console.error('❌ Error subiendo banner:', error);
+      toast.error(error.response?.data?.message || 'Error al subir la imagen');
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
+  const handleRemoveBanner = () => {
+    setFormData(prev => ({ ...prev, bannerImage: '' }));
+    setBannerPreview('');
+  };
 
   const priceTypes = [
     { value: 'fixed', label: 'Precio Fijo', description: 'El cliente paga el precio establecido', icon: '💰', color: 'from-blue-500 to-cyan-500' },
@@ -643,6 +791,7 @@ const ServiceModal = ({ service, onSave, onClose, loading, games, getServiceType
 
   const getPriceHelpText = () => {
     if (isMopRaid) return '🐉 Precio base de la raid (las opciones se manejan en el frontend)';
+    if (formData.serviceType === 'custom_build' || formData.serviceType === 'poe2_custom_build') return '🎨 Precio base de la Custom Build (el total se calculará dinámicamente según la selección)';
     if (formData.priceType === 'variable') return '💰 Precio sugerido - El cliente puede ofertar';
     if (formData.priceType === 'negotiable') return '🤝 Precio base - Negociable con el cliente';
     if (formData.priceType === 'range') return '📊 Precio base sugerido - Define opciones abajo';
@@ -715,6 +864,36 @@ const ServiceModal = ({ service, onSave, onClose, loading, games, getServiceType
                 {descriptionLength}/500 caracteres (mínimo 10)
               </p>
               {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700">
+                Imagen de Banner (opcional)
+              </label>
+
+              {bannerPreview && (
+                <div className="mb-2 relative w-full h-32 rounded-lg overflow-hidden border border-gray-200">
+                  <img src={bannerPreview} alt="Preview del banner" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={handleRemoveBanner}
+                    className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-700"
+                    title="Quitar imagen"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBannerFileChange}
+                disabled={uploadingBanner}
+                className="w-full border rounded-lg px-4 py-2.5 border-gray-300 text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-blue-50 file:text-blue-700 file:text-sm"
+              />
+              {uploadingBanner && <p className="text-xs text-blue-600 mt-1">Subiendo imagen...</p>}
+              <p className="text-xs text-gray-500 mt-1">JPG o PNG, máximo 5MB. Vacío = banner por defecto.</p>
             </div>
 
             <div>

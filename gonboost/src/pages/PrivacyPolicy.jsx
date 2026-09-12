@@ -1,9 +1,9 @@
-// src/pages/PrivacyPolicy.jsx - CORREGIDO PARA PRODUCCIÓN
+// src/pages/PrivacyPolicy.jsx - VERSIÓN CON CUSTOMNAVBAR
 import React, { useState, useEffect } from 'react';
-import axiosInstance from '../utils/axiosConfig';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO/SEO';
-import CustomNavbar from '../components/CustomNavbar';
+import CustomNavbar from '../components/CustomNavbar'; // ✅ IMPORTACIÓN NUEVA
 
 const PrivacyPolicy = () => {
   const [privacyData, setPrivacyData] = useState(null);
@@ -16,19 +16,44 @@ const PrivacyPolicy = () => {
       try {
         setError(null);
         
-        console.log('📄 Fetching privacy policy from backend...');
-        const response = await axiosInstance.get('/privacy-policy', { 
-          timeout: 10000 
-        });
+        // URL CORREGIDA - No incluyas el puerto aquí si usas proxy
+        const BACKEND_URL = process.env.REACT_APP_API_URL || '';
         
-        console.log('✅ Privacy policy fetched successfully');
-        setPrivacyData(response.data);
+        // Diferentes opciones de URL para probar
+        const urlsToTry = [
+          `${BACKEND_URL}/api/privacy-policy`,
+          'http://localhost:5000/api/privacy-policy',
+          '/api/privacy-policy' // Para proxy en desarrollo
+        ];
+        
+        let response = null;
+        let lastError = null;
+        
+        // Intentar cada URL hasta que una funcione
+        for (const url of urlsToTry) {
+          try {
+            console.log(`Intentando conectar a: ${url}`);
+            response = await axios.get(url, { timeout: 5000 });
+            console.log('Respuesta recibida:', response.status);
+            break; // Salir del loop si tiene éxito
+          } catch (err) {
+            lastError = err;
+            console.log(`Error con ${url}:`, err.message);
+            continue; // Intentar siguiente URL
+          }
+        }
+        
+        if (response) {
+          setPrivacyData(response.data);
+        } else {
+          throw lastError || new Error('No se pudo conectar al servidor');
+        }
         
       } catch (error) {
-        console.error('❌ Error fetching privacy policy:', error.message);
+        console.error('Error fetching privacy policy:', error);
         setError(error.message);
         
-        // Fallback data if API fails
+        // Fallback data
         setPrivacyData({
           title: "Privacy Policy - GonBoost",
           lastUpdated: "February 1, 2026",
@@ -117,7 +142,7 @@ const PrivacyPolicy = () => {
   if (loading) {
     return (
       <>
-        <CustomNavbar />
+        <CustomNavbar /> {/* ✅ NAVBAR AÑADIDO */}
         <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center py-12">
@@ -143,7 +168,7 @@ const PrivacyPolicy = () => {
         canonical="https://www.gonboost.com/privacy-policy"
       />
       
-      <CustomNavbar />
+      <CustomNavbar /> {/* ✅ NAVBAR AÑADIDO */}
       
       <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">

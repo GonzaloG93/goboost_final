@@ -1,12 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-
-// Variables globales para controlar la carga del script
-let recaptchaScriptLoaded = false;
-let recaptchaScriptLoading = false;
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -21,146 +15,10 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [captchaValue, setCaptchaValue] = useState(null);
-  const captchaRef = useRef(null);
-  const widgetId = useRef(null);
   
   const navigate = useNavigate();
+  
   const { register, error, clearError } = useAuth();
-
-  // Función para cargar el script de reCAPTCHA
-  const loadRecaptchaScript = useCallback(() => {
-    return new Promise((resolve) => {
-      // 1. Si el script y el método render ya están disponibles, resolvemos inmediatamente
-      if (window.grecaptcha && window.grecaptcha.render) {
-        resolve();
-        return;
-      }
-
-      // Helper para esperar a que el método .render se inyecte en el objeto global
-      const waitForRender = () => {
-        const checkInterval = setInterval(() => {
-          if (window.grecaptcha && window.grecaptcha.render) {
-            clearInterval(checkInterval);
-            recaptchaScriptLoaded = true;
-            recaptchaScriptLoading = false;
-            resolve();
-          }
-        }, 100);
-      };
-
-      // 2. Si ya se está cargando (por otro componente), simplemente esperamos
-      if (recaptchaScriptLoading || recaptchaScriptLoaded) {
-        waitForRender();
-        return;
-      }
-
-      recaptchaScriptLoading = true;
-
-      // 3. Verificar si el script ya existe en el DOM por navegación previa
-      const existingScript = document.querySelector('script[src*="recaptcha/api.js"]');
-      if (existingScript) {
-        waitForRender();
-        return;
-      }
-
-      // 4. Cargar el script por primera vez
-      const script = document.createElement('script');
-      script.src = `https://www.google.com/recaptcha/api.js?render=explicit`;
-      script.async = true;
-      script.defer = true;
-      
-      script.onload = () => {
-        // En lugar de resolver inmediatamente, esperamos a que el método render esté completamente inicializado.
-        waitForRender();
-      };
-      
-      script.onerror = () => {
-        recaptchaScriptLoading = false;
-        console.error('Error loading reCAPTCHA script');
-        resolve();
-      };
-      
-      document.head.appendChild(script);
-    });
-  }, []);
-
-  // Renderizar el widget de reCAPTCHA
-  const renderRecaptcha = useCallback(() => {
-    if (!captchaRef.current) return;
-    
-    // Limpiar widget anterior si existe
-    if (widgetId.current !== null) {
-      try {
-        window.grecaptcha.reset(widgetId.current);
-        return;
-      } catch (e) {
-        widgetId.current = null;
-      }
-    }
-
-    // Verificar que el elemento no tenga ya un widget
-    if (captchaRef.current.innerHTML !== '') {
-      captchaRef.current.innerHTML = '';
-    }
-
-    try {
-      widgetId.current = window.grecaptcha.render(captchaRef.current, {
-        sitekey: RECAPTCHA_SITE_KEY,
-        theme: 'dark',
-        size: 'normal',
-        callback: (value) => {
-          setCaptchaValue(value);
-        },
-        'expired-callback': () => {
-          setCaptchaValue(null);
-        },
-        'error-callback': () => {
-          console.error('reCAPTCHA error occurred');
-        }
-      });
-    } catch (error) {
-      console.error('Error rendering reCAPTCHA:', error);
-      setTimeout(() => {
-        if (captchaRef.current) {
-          captchaRef.current.innerHTML = '';
-          try {
-            widgetId.current = window.grecaptcha.render(captchaRef.current, {
-              sitekey: RECAPTCHA_SITE_KEY,
-              theme: 'dark',
-              callback: (value) => {
-                setCaptchaValue(value);
-              },
-              'expired-callback': () => {
-                setCaptchaValue(null);
-              }
-            });
-          } catch (retryError) {
-            console.error('Retry rendering reCAPTCHA failed:', retryError);
-          }
-        }
-      }, 1000);
-    }
-  }, []);
-
-  // Inicializar reCAPTCHA
-  useEffect(() => {
-    let isMounted = true;
-
-    const initRecaptcha = async () => {
-      await loadRecaptchaScript();
-      
-      if (isMounted && captchaRef.current) {
-        renderRecaptcha();
-      }
-    };
-
-    initRecaptcha();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [loadRecaptchaScript, renderRecaptcha]);
 
   const handleChange = (e) => {
     setFormData({
@@ -168,17 +26,6 @@ const Register = () => {
       [e.target.name]: e.target.value
     });
     if (error) clearError();
-  };
-
-  const resetCaptcha = () => {
-    try {
-      if (widgetId.current !== null && window.grecaptcha) {
-        window.grecaptcha.reset(widgetId.current);
-        setCaptchaValue(null);
-      }
-    } catch (error) {
-      console.error('Error resetting reCAPTCHA:', error);
-    }
   };
 
   const validateForm = () => {
@@ -210,10 +57,6 @@ const Register = () => {
       alert('You must accept the Terms and Conditions');
       return false;
     }
-    if (!captchaValue) {
-      alert('Please complete the CAPTCHA verification');
-      return false;
-    }
     return true;
   };
 
@@ -231,18 +74,14 @@ const Register = () => {
         username: formData.username,
         email: formData.email,
         password: formData.password,
-        name: formData.name,
-        captchaToken: captchaValue
+        name: formData.name
       });
       
       if (result.success) {
         navigate('/dashboard');
-      } else {
-        resetCaptcha();
       }
     } catch (error) {
       console.error('Registration error:', error);
-      resetCaptcha();
     } finally {
       setLoading(false);
     }
@@ -430,11 +269,6 @@ const Register = () => {
                       </span>
                     </button>
                   </div>
-                </div>
-
-                {/* reCAPTCHA */}
-                <div className="mb-6 flex justify-center">
-                  <div ref={captchaRef}></div>
                 </div>
 
                 <div className="mb-8">

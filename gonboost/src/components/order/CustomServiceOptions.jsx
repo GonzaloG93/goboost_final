@@ -1,3 +1,5 @@
+// frontend/src/components/order/CustomServiceOptions.jsx
+
 import React from 'react';
 import { formatPrice } from '../../config/buildsConfig';
 
@@ -6,6 +8,7 @@ const CustomServiceOptions = ({
   currentPrice,
   formData, 
   handleChange, 
+  setFormData,
   isVariablePriceService, 
   hasPriceOptions,
   buildSpecifications, 
@@ -14,6 +17,7 @@ const CustomServiceOptions = ({
   const isVariablePrice = isVariablePriceService();
   const hasOptions = hasPriceOptions();
   const suggestedPrice = service.basePrice || 0;
+  const displayPrice = currentPrice;
 
   return (
     <div className="space-y-5">
@@ -22,11 +26,11 @@ const CustomServiceOptions = ({
           <span className="text-2xl">🛠️</span> {service.name || 'Custom Service'}
         </h3>
         
-        <div className="bg-white rounded-xl p-5 mb-4">
+        <div className="bg-white rounded-xl p-5 mb-4 shadow-sm border border-gray-100">
           {service.description && (
             <p className="text-gray-700 mb-4">{service.description}</p>
           )}
-          
+
           {service.features && service.features.length > 0 && (
             <>
               <h4 className="font-semibold text-gray-800 mb-3">What's Included:</h4>
@@ -118,17 +122,24 @@ const CustomServiceOptions = ({
             </div>
           )}
         </div>
+
+        <div className="p-4 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-xl border border-purple-300">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+            <span className="text-gray-800 font-bold">Total Estimated Price:</span>
+            <span className="text-2xl font-black text-purple-800">${formatPrice(displayPrice)}</span>
+          </div>
+        </div>
         
         <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Special Requirements / Notes
+            Build Specifications / Special Requirements
           </label>
           <textarea 
             value={buildSpecifications} 
             onChange={(e) => setBuildSpecifications(e.target.value)} 
             rows="4" 
-            className="w-full p-3 border rounded-lg resize-none bg-white"
-            placeholder="Please describe your specific requirements, timeline, budget, etc."
+            className="w-full p-3 border rounded-lg resize-none bg-white text-sm"
+            placeholder="Specify class, ascendancy, main skill, preferred stats, timeline, etc."
           />
         </div>
       </div>

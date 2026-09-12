@@ -1,4 +1,3 @@
-// backend/models/Payment.js - VERSIÓN CORREGIDA
 import mongoose from 'mongoose';
 
 const paymentSchema = new mongoose.Schema({
@@ -14,7 +13,7 @@ const paymentSchema = new mongoose.Schema({
   },
   provider: {
     type: String,
-    enum: ['nowpayments', 'paypal', 'stripe', 'binance', 'manual'],
+    enum: ['lemonsqueezy', 'binance', 'kofi', 'manual'],
     required: true
   },
   amount: {
@@ -46,7 +45,6 @@ const paymentSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Índices para mejor performance
 paymentSchema.index({ order: 1 });
 paymentSchema.index({ user: 1 });
 paymentSchema.index({ providerPaymentId: 1 });

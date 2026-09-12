@@ -1,19 +1,22 @@
-// src/hooks/useSeoTranslation.js - CORREGIDO
+// src/hooks/useSeoTranslation.js - VERSIÓN MEJORADA
 import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 
 export const useSeoTranslation = () => {
   const { t, i18n, ready } = useTranslation();
 
+  // Función de traducción mejorada con fallbacks
   const tSeo = (key, options) => {
     if (!ready) return key;
     
     const translation = t(key, options);
     
+    // Si la traducción no existe, mostrar el key en desarrollo pero no en producción
     if (translation === key) {
-      if (import.meta.env.DEV) {
+      if (process.env.NODE_ENV === 'development') {
         console.warn(`Traducción faltante: ${key}`);
       }
+      // Fallback: intentar con el último segmento del key
       const fallbackKey = key.split('.').pop();
       return t(fallbackKey, options) || fallbackKey;
     }
@@ -21,11 +24,9 @@ export const useSeoTranslation = () => {
     return translation;
   };
 
+  // Configuración SEO por idioma
   const seo = useMemo(() => {
-    // ✅ URL base automática: producción usa el dominio actual, desarrollo usa localhost
-    const baseUrl = import.meta.env.VITE_BASE_URL || 
-                    (import.meta.env.PROD ? 'https://gonboost.com' : 'http://localhost:5173');
-    
+    const baseUrl = process.env.REACT_APP_BASE_URL || 'http://localhost:3001';
     const currentLang = i18n.language || 'es';
     
     const seoConfig = {
@@ -79,7 +80,7 @@ export const useSeoTranslation = () => {
   }, [i18n.language]);
 
   return {
-    t: tSeo,
+    t: tSeo, // Usar la función mejorada
     i18n,
     ready,
     seo,

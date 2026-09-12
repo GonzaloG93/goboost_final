@@ -1,8 +1,8 @@
-// src/pages/TermsOfService.jsx - CORREGIDO PARA RENDER
+// src/pages/TermsOfService.jsx - VERSIÓN CON CUSTOMNAVBAR
 import React, { useState, useEffect } from 'react';
-import axiosInstance from '../utils/axiosConfig'; // ✅ Usar la instancia configurada
+import axios from 'axios';
 import { Link } from 'react-router-dom';
-import CustomNavbar from '../components/CustomNavbar';
+import CustomNavbar from '../components/CustomNavbar'; // ✅ IMPORTACIÓN NUEVA
 
 const TermsOfService = () => {
   const [termsData, setTermsData] = useState(null);
@@ -15,17 +15,41 @@ const TermsOfService = () => {
       try {
         setError(null);
         
-        // ✅ USAR LA INSTANCIA CONFIGURADA - URL base ya incluida
-        console.log('📄 Fetching terms from backend...');
-        const response = await axiosInstance.get('/terms/terms-of-service', { 
-          timeout: 10000 
-        });
+        // URL CORREGIDA - No incluyas el puerto aquí si usas proxy
+        const BACKEND_URL = process.env.REACT_APP_API_URL || '';
         
-        console.log('✅ Terms fetched successfully');
-        setTermsData(response.data);
+        // Diferentes opciones de URL para probar
+        const urlsToTry = [
+          `${BACKEND_URL}/api/terms/terms-of-service`,
+          'http://localhost:5000/api/terms/terms-of-service',
+          '/api/terms/terms-of-service' // Para proxy en desarrollo
+        ];
+        
+        let response = null;
+        let lastError = null;
+        
+        // Intentar cada URL hasta que una funcione
+        for (const url of urlsToTry) {
+          try {
+            console.log(`Intentando conectar a: ${url}`);
+            response = await axios.get(url, { timeout: 5000 });
+            console.log('Respuesta recibida:', response.status);
+            break; // Salir del loop si tiene éxito
+          } catch (err) {
+            lastError = err;
+            console.log(`Error con ${url}:`, err.message);
+            continue; // Intentar siguiente URL
+          }
+        }
+        
+        if (response) {
+          setTermsData(response.data);
+        } else {
+          throw lastError || new Error('No se pudo conectar al servidor');
+        }
         
       } catch (error) {
-        console.error('❌ Error fetching terms:', error.message);
+        console.error('Error fetching terms:', error);
         setError(error.message);
         
         // Fallback data if API fails
@@ -96,7 +120,7 @@ const TermsOfService = () => {
   if (loading) {
     return (
       <>
-        <CustomNavbar />
+        <CustomNavbar /> {/* ✅ NAVBAR AÑADIDO */}
         <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="animate-pulse">
@@ -112,7 +136,7 @@ const TermsOfService = () => {
 
   return (
     <>
-      <CustomNavbar />
+      <CustomNavbar /> {/* ✅ NAVBAR AÑADIDO */}
       
       <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
@@ -184,6 +208,7 @@ const TermsOfService = () => {
 
                 {/* Content */}
                 <div className="p-8">
+                  {/* Introduction */}
                   <div className="prose prose-lg max-w-none">
                     <div className="mb-8 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
                       <p className="text-yellow-800 font-medium">
@@ -191,6 +216,7 @@ const TermsOfService = () => {
                       </p>
                     </div>
 
+                    {/* Terms Sections */}
                     {termsData.content.sections.map((section) => (
                       <div
                         key={section.id}
@@ -207,6 +233,7 @@ const TermsOfService = () => {
                       </div>
                     ))}
 
+                    {/* Acceptance Section */}
                     <div className="mt-12 p-6 bg-gray-50 rounded-lg border border-gray-200">
                       <h3 className="text-xl font-bold text-gray-900 mb-4">Acceptance of Terms</h3>
                       <p className="text-gray-700 mb-4">
@@ -228,6 +255,7 @@ const TermsOfService = () => {
                   </div>
                 </div>
 
+                {/* Footer Note */}
                 <div className="bg-gray-50 px-8 py-6 border-t border-gray-200">
                   <div className="flex flex-col sm:flex-row justify-between items-center">
                     <div className="mb-4 sm:mb-0">
@@ -242,6 +270,7 @@ const TermsOfService = () => {
                 </div>
               </div>
 
+              {/* Navigation Buttons */}
               <div className="mt-8 flex justify-between">
                 <Link
                   to="/privacy-policy"

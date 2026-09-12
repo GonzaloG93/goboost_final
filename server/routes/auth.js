@@ -1,80 +1,26 @@
-// backend/routes/auth.js - VERSIÓN COMPLETA CON reCAPTCHA
+// backend/routes/auth.js - VERSIÓN COMPLETA CON TOKENS QUE NO CADUCAN
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import axios from 'axios';
 import User from '../models/User.js';
 import { auth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+// ✅ USAR EL MISMO SECRET QUE EN authMiddleware.js
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_development';
-const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
 
-// Middleware para verificar reCAPTCHA
-const verifyRecaptcha = async (req, res, next) => {
-  const token = req.body.captchaToken;
-  
-  if (!token) {
-    console.log('❌ Token de reCAPTCHA no proporcionado');
-    return res.status(400).json({
-      success: false,
-      message: 'Por favor completa la verificación de seguridad (CAPTCHA)'
-    });
-  }
-
-  try {
-    console.log('🔐 Verificando reCAPTCHA token...');
-    
-    const response = await axios.post(
-      'https://www.google.com/recaptcha/api/siteverify',
-      null,
-      {
-        params: {
-          secret: RECAPTCHA_SECRET_KEY,
-          response: token
-        }
-      }
-    );
-
-    const { success, 'error-codes': errorCodes } = response.data;
-
-    if (success) {
-      console.log('✅ reCAPTCHA verificado exitosamente');
-      next();
-    } else {
-      console.error('❌ reCAPTCHA verification failed:', errorCodes);
-      
-      let message = 'Verificación de seguridad fallida';
-      if (errorCodes && errorCodes.includes('timeout-or-duplicate')) {
-        message = 'La verificación de seguridad ha expirado. Por favor intenta de nuevo.';
-      }
-      
-      return res.status(400).json({
-        success: false,
-        message
-      });
-    }
-  } catch (error) {
-    console.error('❌ Error verificando reCAPTCHA:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error al verificar la seguridad. Intenta nuevamente.'
-    });
-  }
-};
-
-// Helper: Generar token sin expiración
+// ✅ HELPER CORREGIDO: GENERAR TOKEN SIN EXPIRACIÓN
 const generateToken = (userId) => {
   return jwt.sign(
     { 
       id: userId,
-      timestamp: Date.now()
+      timestamp: Date.now() // Agregar timestamp para hacer cada token único
     }, 
     JWT_SECRET
+    // ❌ SIN expiresIn - ESTO HACE QUE EL TOKEN NO CADUQUE
   );
 };
 
-// Helper: Formatear respuesta de usuario
 const getUserResponse = (user) => ({
   _id: user._id,
   id: user._id,
@@ -90,7 +36,7 @@ const getUserResponse = (user) => ({
   updatedAt: user.updatedAt
 });
 
-// ==================== LOGIN ====================
+// ✅ CONTROLADORES CORREGIDOS
 const login = async (req, res) => {
   try {
     console.log('🔐 Intentando login para:', req.body.email);
@@ -105,16 +51,7 @@ const login = async (req, res) => {
       });
     }
     
-    // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Formato de email inválido'
-      });
-    }
-    
-    // Buscar usuario incluyendo password
+    // ✅ BUSCAR USUARIO INCLUYENDO PASSWORD
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       console.log('❌ Usuario no encontrado:', email);
@@ -125,8 +62,9 @@ const login = async (req, res) => {
     }
 
     console.log('✅ Usuario encontrado:', user.email);
-    
-    // Verificar contraseña
+    console.log('🔐 Verificando contraseña...');
+
+    // ✅ USAR EL MÉTODO CORREGIDO DEL MODELO USER
     const isPasswordValid = await user.correctPassword(password);
     if (!isPasswordValid) {
       console.log('❌ Contraseña incorrecta para:', email);
@@ -145,21 +83,31 @@ const login = async (req, res) => {
       });
     }
 
-    // Actualizar último login
-    user.lastLogin = new Date();
-    await user.save({ validateBeforeSave: false });
-
-    // Generar token
+    // ✅ GENERAR TOKEN SIN EXPIRACIÓN
     const token = generateToken(user._id);
     
-    console.log('✅ Login exitoso para:', user.email);
+    // ✅ DEBUG: Verificar contenido del token
+    console.log('✅ Login exitoso, token generado para:', user.email);
+    console.log('🔑 Token generado (primeros 50 chars):', token.substring(0, 50) + '...');
+    
+    // Decodificar para verificar que no tiene expiración
+    try {
+      const decoded = jwt.decode(token);
+      console.log('📋 Token decodificado:', {
+        id: decoded.id,
+        timestamp: new Date(decoded.timestamp),
+        exp: decoded.exp ? 'TIENE EXPIRACIÓN' : 'NO TIENE EXPIRACIÓN',
+        iat: decoded.iat ? 'TIENE IAT' : 'NO TIENE IAT'
+      });
+    } catch (e) {
+      console.log('⚠️ No se pudo decodificar token:', e.message);
+    }
 
     res.json({
       success: true,
       token,
       user: getUserResponse(user)
     });
-    
   } catch (error) {
     console.error('❌ Error en login:', error);
     res.status(500).json({ 
@@ -169,14 +117,12 @@ const login = async (req, res) => {
   }
 };
 
-// ==================== REGISTER ====================
 const register = async (req, res) => {
   try {
     console.log('👤 Intentando registro:', req.body.email);
     
-    const { username, email, password, name } = req.body;
+    const { username, email, password, role } = req.body;
 
-    // Validaciones
     if (!username || !email || !password) {
       return res.status(400).json({ 
         success: false,
@@ -184,72 +130,36 @@ const register = async (req, res) => {
       });
     }
 
-    // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Formato de email inválido'
-      });
-    }
-
-    // Validar longitud de contraseña
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'La contraseña debe tener al menos 6 caracteres'
-      });
-    }
-
-    // Validar username
-    if (username.length < 3) {
-      return res.status(400).json({
-        success: false,
-        message: 'El nombre de usuario debe tener al menos 3 caracteres'
-      });
-    }
-
-    // Verificar si ya existe el usuario
-    const existingUser = await User.findOne({ 
-      $or: [{ email: email.toLowerCase() }, { username: username.toLowerCase() }] 
-    });
-    
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
-      if (existingUser.email === email.toLowerCase()) {
-        return res.status(400).json({ 
-          success: false,
-          message: 'Ya existe una cuenta con este email' 
-        });
-      }
       return res.status(400).json({ 
         success: false,
-        message: 'El nombre de usuario ya está en uso' 
+        message: 'Ya existe un usuario con este email o nombre de usuario' 
       });
     }
 
-    // Crear usuario
+    // ✅ CREAR USUARIO - DEJAR QUE EL PRE-SAVE HOOK HAGA EL HASHING
     const user = new User({
-      username: username.toLowerCase(),
-      email: email.toLowerCase(),
-      password,
-      name: name || username,
-      role: 'customer',
+      username,
+      email,
+      password, // ✅ Pasar en texto plano
+      role: role || 'customer',
       isActive: true
     });
 
     await user.save();
     
-    // Generar token
+    // ✅ GENERAR TOKEN SIN EXPIRACIÓN
     const token = generateToken(user._id);
     
     console.log('✅ Usuario registrado exitosamente:', user.email);
+    console.log('🔑 Token generado sin expiración');
 
     res.status(201).json({
       success: true,
       token,
       user: getUserResponse(user)
     });
-    
   } catch (error) {
     console.error('❌ Error en registro:', error);
     
@@ -264,10 +174,9 @@ const register = async (req, res) => {
     
     // Manejar errores de duplicados
     if (error.code === 11000) {
-      const field = Object.keys(error.keyValue)[0];
       return res.status(400).json({ 
         success: false,
-        message: `El ${field === 'email' ? 'email' : 'nombre de usuario'} ya existe` 
+        message: 'El email o nombre de usuario ya existe' 
       });
     }
 
@@ -278,20 +187,22 @@ const register = async (req, res) => {
   }
 };
 
-// ==================== OBTENER USUARIO ACTUAL ====================
 const getCurrentUser = async (req, res) => {
   try {
-    console.log('🔍 Obteniendo usuario actual:', req.user._id);
+    console.log('🔍 Buscando usuario actual:', req.user._id);
     
     const user = req.user;
     
     if (!user) {
+      console.log('❌ Usuario no encontrado en req.user');
       return res.status(404).json({
         success: false,
         message: 'Usuario no encontrado'
       });
     }
 
+    console.log('✅ Usuario actual encontrado:', user.email);
+    
     res.json({
       success: true,
       user: getUserResponse(user)
@@ -305,26 +216,15 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
-// ==================== RUTAS ====================
-// Login y Register con verificación reCAPTCHA
-router.post('/login', verifyRecaptcha, login);
-router.post('/register', verifyRecaptcha, register);
-
-// Rutas protegidas
-router.get('/me', auth, getCurrentUser);
-router.put('/profile', auth, async (req, res) => {
+const updateProfile = async (req, res) => {
   try {
-    const { username, name } = req.body;
-    
-    const updateData = {};
-    if (username) updateData.username = username;
-    if (name) updateData.name = name;
+    const { username, games } = req.body;
     
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      updateData,
+      { username, games },
       { new: true, runValidators: true }
-    );
+    ).select('-password');
 
     if (!user) {
       return res.status(404).json({
@@ -344,15 +244,133 @@ router.put('/profile', auth, async (req, res) => {
       message: error.message 
     });
   }
-});
+};
 
-// Verificar token
+// ✅ ENDPOINT PARA REGENERAR TOKEN SIN EXPIRACIÓN
+const regenerateToken = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email y contraseña requeridos'
+      });
+    }
+    
+    const user = await User.findOne({ email }).select('+password');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado'
+      });
+    }
+    
+    const isPasswordValid = await user.correctPassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Credenciales inválidas'
+      });
+    }
+    
+    // ✅ GENERAR NUEVO TOKEN SIN EXPIRACIÓN
+    const token = generateToken(user._id);
+    
+    console.log('🔄 Token regenerado sin expiración para:', user.email);
+    
+    res.json({
+      success: true,
+      token,
+      user: getUserResponse(user),
+      message: 'Token regenerado exitosamente (sin expiración)'
+    });
+    
+  } catch (error) {
+    console.error('❌ Error en regenerateToken:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+// ✅ RUTAS PRINCIPALES
+router.post('/login', login);
+router.post('/register', register);
+router.get('/me', auth, getCurrentUser);
+router.put('/profile', auth, updateProfile);
 router.post('/verify', auth, (req, res) => {
   res.json({
     success: true,
     message: 'Token válido',
     user: getUserResponse(req.user)
   });
+});
+
+// ✅ RUTA PARA REGENERAR TOKEN (útil si ya tienes tokens viejos con expiración)
+router.post('/regenerate-token', regenerateToken);
+
+// Mantener rutas de debug si las necesitas
+router.post('/debug-check', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    console.log('🔍 Debug check para:', email);
+    
+    const user = await User.findOne({ email }).select('+password');
+    
+    if (!user) {
+      return res.json({ 
+        userExists: false,
+        message: 'Usuario no encontrado' 
+      });
+    }
+    
+    // Probar verificación de contraseña
+    const passwordValid = await user.correctPassword(password);
+    
+    res.json({
+      userExists: true,
+      userEmail: user.email,
+      userActive: user.isActive,
+      passwordValid: passwordValid,
+      userRole: user.role,
+      userId: user._id
+    });
+    
+  } catch (error) {
+    console.error('❌ Error en debug-check:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/debug-users', async (req, res) => {
+  try {
+    const users = await User.find({}).select('email username isActive role createdAt');
+    
+    console.log('📊 Usuarios en la base de datos:');
+    users.forEach(user => {
+      console.log(`- ${user.email} (${user.username}): ${user.role}, active=${user.isActive}`);
+    });
+
+    res.json({
+      success: true,
+      totalUsers: users.length,
+      users: users.map(user => ({
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        id: user._id
+      }))
+    });
+  } catch (error) {
+    console.error('Error en debug-users:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 export default router;

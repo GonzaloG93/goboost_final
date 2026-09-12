@@ -40,7 +40,7 @@ const Footer = () => {
             <div className="flex space-x-3">
               {/* Discord */}
               <a 
-                href="https://discord.gg/uVSFmFtHRR" 
+                href="https://discord.gg/cc6KgYUQ" 
                 aria-label="Join our Discord"
                 className="text-gray-300 hover:text-purple-400 transition-colors p-2 bg-gray-800 rounded-lg"
               >
@@ -73,7 +73,7 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Quick Links - ✅ CORREGIDO CON NOMBRES EXACTOS DE JUEGOS */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Services</h3>
             <ul className="space-y-2" role="list">
@@ -165,18 +165,30 @@ const Footer = () => {
             © {currentYear} Gonboost. All rights reserved.
           </p>
 
-          {/* Payment Methods - Solo PayPal y Binance */}
-          <div className="flex space-x-5 mt-4 md:mt-0 mr-16 md:mr-20" aria-label="Accepted payment methods">
+          {/* Payment Methods */}
+          <div className="flex space-x-4 mt-4 md:mt-0" aria-label="Accepted payment methods">
             <img 
-              src="/images/payment-methods/paypal.svg" 
-              alt="PayPal" 
-              className="h-10 md:h-12 w-auto" 
+              src="/images/payment-methods/visa.svg" 
+              alt="Visa" 
+              className="h-6 w-auto" 
               loading="lazy"
             />
             <img 
-              src="/images/payment-methods/binance.svg" 
-              alt="Binance" 
-              className="h-10 md:h-12 w-auto" 
+              src="/images/payment-methods/mastercard.svg" 
+              alt="Mastercard" 
+              className="h-6 w-auto" 
+              loading="lazy"
+            />
+            <img 
+              src="/images/payment-methods/paypal.svg" 
+              alt="PayPal" 
+              className="h-6 w-auto" 
+              loading="lazy"
+            />
+            <img 
+              src="/images/payment-methods/bitcoin.svg" 
+              alt="Bitcoin" 
+              className="h-6 w-auto" 
               loading="lazy"
             />
           </div>

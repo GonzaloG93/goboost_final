@@ -1,4 +1,4 @@
-// src/context/AuthContext.jsx - CON INTEGRACIÓN reCAPTCHA
+// src/context/AuthContext.jsx - VERSIÓN OPTIMIZADA PARA PRODUCCIÓN
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import axios from '../utils/axiosConfig';
 
@@ -11,6 +11,7 @@ let cachedUserData = null;
 
 const isDev = import.meta.env.DEV;
 
+// Función de log condicional
 const devLog = (...args) => {
   if (isDev) {
     console.log(...args);
@@ -105,7 +106,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Invalid user data received');
       }).catch(error => {
         if (error.name === 'CanceledError' || error.name === 'AbortError') {
-          return null;
+          return null; 
         }
         
         if (error.response?.status === 401) {
@@ -185,11 +186,10 @@ export const AuthProvider = ({ children }) => {
         abortControllerRef.current.abort();
       }
     };
-  }, []);
+  }, []); 
 
   useEffect(() => {
     if (!isDev) return;
-    
     devLog('🔐 AuthContext - Estado:', {
       user: user?.username,
       loading,
@@ -198,18 +198,11 @@ export const AuthProvider = ({ children }) => {
     });
   }, [user, loading, token]);
 
-  // Login con reCAPTCHA
-  const login = async (email, password, captchaToken) => {
+  const login = async (email, password) => {
     try {
       setError(null);
       
-      devLog('📤 Enviando solicitud de login con reCAPTCHA...');
-      
-      const response = await axios.post('/auth/login', { 
-        email, 
-        password,
-        captchaToken // Enviar token de reCAPTCHA
-      });
+      const response = await axios.post('/auth/login', { email, password });
       
       if (response.data.success) {
         const { token, user } = response.data;
@@ -225,7 +218,6 @@ export const AuthProvider = ({ children }) => {
           setLoading(false);
         }
         
-        devLog('✅ Login exitoso');
         return { success: true, user };
       } else {
         throw new Error(response.data.message || 'Login failed');
@@ -235,21 +227,14 @@ export const AuthProvider = ({ children }) => {
                      error.response?.data?.error || 
                      'Error en el inicio de sesión. Verifica tus credenciales.';
       
-      if (mountedRef.current) {
-        setError(message);
-      }
-      
-      devLog('❌ Login fallido:', message);
+      if (mountedRef.current) setError(message);
       return { success: false, error: message };
     }
   };
 
-  // Register con reCAPTCHA
   const register = async (userData) => {
     try {
       setError(null);
-      
-      devLog('📤 Enviando registro con reCAPTCHA...');
       
       const response = await axios.post('/auth/register', userData);
       
@@ -267,7 +252,6 @@ export const AuthProvider = ({ children }) => {
           setLoading(false);
         }
         
-        devLog('✅ Registro exitoso');
         return { success: true, user };
       } else {
         throw new Error(response.data.message || 'Registration failed');
@@ -277,11 +261,45 @@ export const AuthProvider = ({ children }) => {
                      error.response?.data?.error || 
                      'Error en el registro';
       
-      if (mountedRef.current) {
-        setError(message);
-      }
+      if (mountedRef.current) setError(message);
+      return { success: false, error: message };
+    }
+  };
+
+  const guestLogin = async (email) => {
+    try {
+      setError(null);
       
-      devLog('❌ Registro fallido:', message);
+      const response = await axios.post('/auth/guest-auth', { email });
+      
+      if (response.data.success) {
+        const { token, user } = response.data;
+        
+        cachedUserData = user;
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        if (mountedRef.current) {
+          setUser(user);
+          setToken(token);
+          setError(null);
+          setLoading(false);
+        }
+        
+        return { success: true, user };
+      }
+    } catch (error) {
+      if (error.response?.status === 409 && error.response?.data?.requiresLogin) {
+        return { 
+          success: false, 
+          requiresLogin: true, 
+          error: error.response.data.message 
+        };
+      }
+
+      const message = error.response?.data?.message || 'Error en checkout de invitado';
+      if (mountedRef.current) setError(message);
+      
       return { success: false, error: message };
     }
   };
@@ -310,9 +328,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const clearError = useCallback(() => {
-    if (mountedRef.current) {
-      setError(null);
-    }
+    if (mountedRef.current) setError(null);
   }, []);
 
   const value = {
@@ -320,6 +336,7 @@ export const AuthProvider = ({ children }) => {
     token,
     login,
     register,
+    guestLogin,
     logout,
     loading,
     error,

@@ -1,7 +1,7 @@
-// src/components/LanguageSelector.jsx
+// src/components/LanguageSelector.jsx - VERSIÓN FLUIDA (SPA NAVIGATE + CACHÉ CORREGIDA)
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { FaGlobe, FaCheck } from 'react-icons/fa';
 import {
   SUPPORTED_LANGUAGES,
@@ -18,12 +18,13 @@ const languages = [
   { code: 'fr', name: languageNames.fr, flag: languageFlags.fr, short: 'FR' },
   { code: 'nl', name: languageNames.nl, flag: languageFlags.nl, short: 'NL' },
   { code: 'pt', name: languageNames.pt, flag: languageFlags.pt, short: 'PT' },
-  { code: 'ru', name: languageNames.ru, flag: languageFlags.ru, short: 'RU' }
+  { code: 'ru', name: languageNames.ru, flag: languageFlags.ru, short: 'RU' },
 ];
 
 const LanguageSelector = ({ theme = 'light' }) => {
   const { i18n } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -41,17 +42,28 @@ const LanguageSelector = ({ theme = 'light' }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const changeLanguage = (langCode) => {
+  const changeLanguage = async (langCode) => {
     if (langCode === currentLang) {
       setIsOpen(false);
       return;
     }
+
+    setIsOpen(false);
+
+    // 1. Guardar inmediatamente la preferencia en localStorage para sincronizar con RootRedirect
+    localStorage.setItem('preferredLanguage', langCode);
+
+    // 2. Cambiar la instancia de i18n dinámicamente
+    await i18n.changeLanguage(langCode);
+    document.documentElement.lang = langCode;
+
+    // 3. Construir la nueva ruta con o sin prefijo según el idioma
     const currentPath = location.pathname;
     const newPath = getLocalizedUrl(currentPath, langCode);
     const fullUrl = newPath + location.search + location.hash;
-    localStorage.setItem('preferredLanguage', langCode);
-    // Recarga total para reemplazar recursos y ruta
-    window.location.href = fullUrl;
+
+    // 4. Navegar mediante el router de React (SPA instantáneo)
+    navigate(fullUrl, { replace: true });
   };
 
   return (
@@ -69,6 +81,7 @@ const LanguageSelector = ({ theme = 'light' }) => {
         <span className="font-medium hidden sm:inline">{currentLanguage.short}</span>
         <span className="sm:hidden">{currentLanguage.flag}</span>
       </button>
+
       {isOpen && (
         <div
           className={`absolute right-0 mt-2 w-48 rounded-lg shadow-xl border z-50 py-1 max-h-80 overflow-y-auto ${

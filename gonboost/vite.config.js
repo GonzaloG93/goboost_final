@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react({
         jsxRuntime: 'automatic'
+        // ✅ Se eliminó la propiedad "babel" – Terser ya elimina los console en producción
       }),
       mode === 'analyze' && visualizer({
         open: true,
@@ -28,6 +29,7 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_URL || 'http://localhost:5000',
           changeOrigin: true,
           secure: false,
+          rewrite: (path) => path.replace(/^\/api/, '/api')
         },
         '/socket.io': {
           target: env.VITE_SOCKET_URL || 'http://localhost:5000',
@@ -36,30 +38,55 @@ export default defineConfig(({ mode }) => {
           ws: true
         }
       } : undefined,
+      cors: !isProduction,
+      headers: {
+        'X-Content-Type-Options': 'nosniff'
+      }
     },
 
     build: {
       outDir: 'dist',
-      sourcemap: false,
+      sourcemap: isProduction ? false : 'hidden',
       emptyOutDir: true,
-      minify: 'esbuild',
+      minify: isProduction ? 'terser' : 'esbuild',
+      terserOptions: isProduction ? {
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+          pure_funcs: ['console.log', 'console.info', 'console.debug'],
+          passes: 2
+        },
+        mangle: {
+          properties: {
+            regex: /^_/
+          }
+        },
+        format: {
+          comments: false
+        }
+      } : undefined,
       rollupOptions: {
         output: {
           entryFileNames: 'assets/[name]-[hash].js',
           chunkFileNames: 'assets/[name]-[hash].js',
           assetFileNames: 'assets/[name]-[hash].[ext]'
+        },
+        onwarn: (warning, warn) => {
+          if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return
+          if (warning.code === 'SOURCEMAP_ERROR') return
+          warn(warning)
         }
       },
       chunkSizeWarningLimit: 800,
       target: 'es2020',
+      cssTarget: 'chrome80',
       reportCompressedSize: true,
+      assetsInlineLimit: 4096
     },
 
-    base: '/',
+    base: isProduction ? '/' : '/',
 
     resolve: {
-      // ✅ Evitar instancias duplicadas de i18n con Vite HMR
-      dedupe: ['i18next', 'react-i18next'],
       alias: {
         '@': '/src',
         '@components': '/src/components',
@@ -75,16 +102,38 @@ export default defineConfig(({ mode }) => {
     preview: {
       port: 3000,
       host: true,
+      strictPort: true,
+      headers: {
+        'Cache-Control': 'public, max-age=3600',
+        'X-Frame-Options': 'DENY',
+        'X-XSS-Protection': '1; mode=block'
+      }
     },
 
     css: {
-      devSourcemap: false,
+      devSourcemap: !isProduction,
+      modules: {
+        localsConvention: 'camelCase',
+        generateScopedName: isProduction
+          ? '[hash:base64:8]'
+          : '[name]__[local]__[hash:base64:5]'
+      },
       postcss: './postcss.config.js'
     },
 
+    esbuild: {
+      drop: isProduction ? ['console', 'debugger'] : [],
+      legalComments: 'none'
+    },
+
     define: {
-      __APP_VERSION__: JSON.stringify('1.0.0'),
+      __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
+      __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
       'process.env.NODE_ENV': JSON.stringify(mode)
     },
+
+    cacheDir: '.vite/cache',
+
+    assetsInclude: ['**/*.gltf', '**/*.glb', '**/*.hdr']
   }
 })

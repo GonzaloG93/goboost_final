@@ -1,4 +1,4 @@
-// frontend/src/config/gamesConfig.js - VERSIÓN SIN CALL OF DUTY
+// frontend/src/config/gamesConfig.js - CON SOPORTE PARA POE2 Y CUSTOM BUILD
 
 // ============================================
 // JUEGOS DISPONIBLES
@@ -8,6 +8,7 @@ export const GAMES = [
   'Diablo 3',
   'Diablo 4',
   'Diablo Immortal',
+  'Path of Exile 2',
   'World of Warcraft Retail',
   'World of Warcraft Classic',
   'Dune Awakening'
@@ -38,6 +39,11 @@ export const GAME_SPECIFIC_SERVICES = {
     'immortal_starter_pack', 'immortal_endgame_pack', 'boss_killing',
     'dungeon_clearing', 'uber_services', 'custom_build'
   ],
+  'Path of Exile 2': [
+    'powerleveling', 'leveling', 'builds', 'poe2_build_starter', 'poe2_build_advanced',
+    'poe2_build_endgame', 'poe2_starter_pack', 'poe2_endgame_pack', 'custom_build',
+    'poe2_custom_build', 'boss_killing', 'currency_farming'
+  ],
   'World of Warcraft Retail': [
     'powerleveling', 'leveling', 'mythic_plus', 'raiding', 'pvp_boost',
     'arena', 'placement', 'wins', 'gold_farming', 'builds', 'build_services',
@@ -47,7 +53,6 @@ export const GAME_SPECIFIC_SERVICES = {
     'powerleveling', 'leveling', 'gold_farming', 'builds', 'build_services',
     'classic_starter_pack', 'classic_endgame_pack', 'tbc_starter_pack',
     'tbc_endgame_pack', 'raiding',
-    // ========== NUEVOS SERVICIOS MOP CLASSIC ==========
     'mop_mogushan_vaults',
     'mop_heart_of_fear',
     'mop_terrace_endless_spring',
@@ -67,14 +72,15 @@ export const GAME_SPECIFIC_SERVICES = {
 export const ALL_SERVICE_TYPES = [
   'powerleveling', 'paragon_leveling', 'leveling', 'variable_leveling',
   'builds', 'builds_starter', 'builds_ancestral', 'builds_mythic', 'builds_tormented',
-  'build_services', 'runewords', 'custom_build',
+  'poe2_build_starter', 'poe2_build_advanced', 'poe2_build_endgame',
+  'build_services', 'runewords', 'custom_build', 'poe2_custom_build',
   'dune_base_construction', 'dune_craft_vehicle',
   'dune_starter_pack', 'dune_advanced_pack', 'dune_endgame_pack',
   'd2_starter_pack', 'd2_endgame_pack', 'd3_starter_pack', 'd3_endgame_pack',
   'd4_starter_pack', 'd4_endgame_pack', 'immortal_starter_pack', 'immortal_endgame_pack',
+  'poe2_starter_pack', 'poe2_endgame_pack',
   'wow_starter_pack', 'wow_endgame_pack', 'classic_starter_pack', 'classic_endgame_pack',
   'tbc_starter_pack', 'tbc_endgame_pack',
-  // ========== NUEVOS MOP RAIDS ==========
   'mop_mogushan_vaults', 'mop_heart_of_fear', 'mop_terrace_endless_spring', 'mop_throne_of_thunder',
   'boss_killing', 'dungeon_clearing', 'dungeon_runs', 'nightmare_dungeons',
   'uber_services', 'the_pit_artificer', 'mythic_plus', 'raiding', 'greater_rift',
@@ -97,9 +103,13 @@ export const SERVICE_TYPE_FORMAT = {
   'builds_ancestral': 'Ancestral Build',
   'builds_mythic': 'Mythic Build',
   'builds_tormented': 'Tormented Build',
+  'poe2_build_starter': 'Starter Build (PoE 2)',
+  'poe2_build_advanced': 'Advanced Build (PoE 2)',
+  'poe2_build_endgame': 'Endgame Build (PoE 2)',
   'build_services': 'Build Services',
   'runewords': 'Runewords',
   'custom_build': 'Custom Build',
+  'poe2_custom_build': 'Custom Build (PoE 2)',
   'dune_base_construction': 'Base Construction',
   'dune_craft_vehicle': 'Craft Vehicle',
   'dune_starter_pack': 'Starter Bundle - Dune',
@@ -113,13 +123,14 @@ export const SERVICE_TYPE_FORMAT = {
   'd4_endgame_pack': 'Endgame Pack (D4)',
   'immortal_starter_pack': 'Starter Pack (Immortal)',
   'immortal_endgame_pack': 'Endgame Pack (Immortal)',
+  'poe2_starter_pack': 'Bundle Starter (PoE 2)',
+  'poe2_endgame_pack': 'Bundle Endgame (PoE 2)',
   'wow_starter_pack': 'Starter Pack (WoW)',
   'wow_endgame_pack': 'Endgame Pack (WoW)',
   'classic_starter_pack': 'Starter Pack (Classic)',
   'classic_endgame_pack': 'Endgame Pack (Classic)',
   'tbc_starter_pack': 'TBC Starter Pack - Silver',
   'tbc_endgame_pack': 'TBC End Game Pack - Platinum',
-  // ========== NUEVOS MOP RAIDS ==========
   'mop_mogushan_vaults': 'Mogu\'shan Vaults Boost',
   'mop_heart_of_fear': 'Heart of Fear Boost',
   'mop_terrace_endless_spring': 'Terrace of Endless Spring Boost',
@@ -228,7 +239,7 @@ export const calculatePitPrice = (runs, mode, tierValue) => {
 };
 
 // ============================================
-// MOP CLASSIC RAID CONFIGURATION (NUEVO)
+// MOP CLASSIC RAID CONFIGURATION
 // ============================================
 export const MOP_RAID_CONFIG = {
   'mop_mogushan_vaults': {
@@ -343,7 +354,7 @@ export const getServiceTypesForGame = (game) => GAME_SPECIFIC_SERVICES[game] || 
 export const categorizeService = (serviceType) => {
   if (!serviceType) return 'other';
   if (['powerleveling', 'paragon_leveling', 'leveling', 'variable_leveling'].includes(serviceType)) return 'leveling';
-  if (serviceType.includes('build') || serviceType === 'runewords' || serviceType === 'build_services' || serviceType === 'custom_build' || serviceType === 'dune_base_construction' || serviceType === 'dune_craft_vehicle') return 'builds';
+  if (serviceType.includes('build') || serviceType === 'runewords' || serviceType === 'build_services' || serviceType === 'custom_build' || serviceType === 'poe2_custom_build' || serviceType === 'dune_base_construction' || serviceType === 'dune_craft_vehicle') return 'builds';
   if (serviceType.includes('_pack') || serviceType.startsWith('bundle_')) return 'bundles';
   if (['boss_killing', 'dungeon_clearing', 'dungeon_runs', 'nightmare_dungeons', 'uber_services', 'the_pit_artificer', 'mythic_plus', 'raiding', 'monolith_farming', 'legendary_crafting', 'greater_rift', 'bounty_services', 'mop_mogushan_vaults', 'mop_heart_of_fear', 'mop_terrace_endless_spring', 'mop_throne_of_thunder'].includes(serviceType)) return 'content';
   if (['currency_farming', 'gold_farming', 'resource_farming', 'item_farming'].includes(serviceType)) return 'farming';
@@ -357,6 +368,7 @@ export const normalizeGameName = (game) => {
   const map = {
     'Diablo 2': 'Diablo 2 Resurrected', 'D2': 'Diablo 2 Resurrected',
     'D3': 'Diablo 3', 'D4': 'Diablo 4', 'Immortal': 'Diablo Immortal',
+    'PoE 2': 'Path of Exile 2', 'PoE2': 'Path of Exile 2', 'Path of Exile 2': 'Path of Exile 2',
     'WoW': 'World of Warcraft Retail', 'World of Warcraft': 'World of Warcraft Retail',
     'Retail': 'World of Warcraft Retail', 'WoW Classic': 'World of Warcraft Classic',
     'Classic': 'World of Warcraft Classic',

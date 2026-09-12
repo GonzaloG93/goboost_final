@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 import { toast } from "react-toastify";
 import { formatServiceType } from "../config/gamesConfig";
+import ReviewForm from "../components/ReviewForm";
 
 const OrderDetails = () => {
   const { orderId } = useParams();
@@ -442,7 +443,18 @@ const OrderDetails = () => {
           {/* Columna izquierda - Detalles del servicio */}
           <div className="lg:col-span-2 space-y-6">
             {/* Información del Servicio */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div
+              className={`relative rounded-xl shadow-sm border border-gray-200 p-6 overflow-hidden ${!order.service?.bannerImage ? 'bg-white' : ''}`}
+              style={order.service?.bannerImage ? {
+                backgroundImage: `url(${order.service.bannerImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              } : undefined}
+            >
+              {order.service?.bannerImage && (
+                <div className="absolute inset-0 bg-white/90" />
+              )}
+              <div className="relative">
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                 <span className="mr-2">🎮</span>
                 Detalles del Servicio
@@ -483,7 +495,9 @@ const OrderDetails = () => {
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">{order.gameDetails.customerNotes}</p>
                 </div>
               )}
+              </div>
             </div>
+
 
             {/* Datos de la cuenta - VERSIÓN MEJORADA Y SEGURA */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -620,6 +634,10 @@ const OrderDetails = () => {
                 )}
               </div>
             </div>
+
+            {order.status === "completed" && (
+              <ReviewForm orderId={order._id} />
+            )}
           </div>
 
           {/* Columna derecha - Información de pago */}

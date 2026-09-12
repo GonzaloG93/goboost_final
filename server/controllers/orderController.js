@@ -34,14 +34,130 @@ const getCachedService = async (serviceId) => {
 // CALCULADORA DE PRECIO CORREGIDA
 // ============================================
 const calculateServicePrice = (service, gameDetails) => {
-  // 1. PRIORIDAD MÁXIMA: Si el servicio tiene basePrice en la DB, lo usamos
+  const serviceType = service.serviceType;
+  const game = service.game;
+  gameDetails = gameDetails || {};
+
+  // 1. Diablo 4 - Boss Killing (precio real: boss × runs con descuento por volumen + materiales)
+  if (serviceType === 'boss_killing' && game === 'Diablo 4') {
+    const runs = Number(gameDetails.runs || gameDetails.quantity) || 50;
+    const options = {
+      selectedBoss: gameDetails.boss || 'andariel',
+      mode: gameDetails.serviceMode,
+      includeMaterials: !!gameDetails.includeMaterials,
+      materialSets: gameDetails.includeMaterials ? (Number(gameDetails.materialSets) || runs) : 0
+    };
+    const price = pricingCalculator.calculatePrice(serviceType, { quantity: runs }, game, options);
+    console.log(`🐲 Boss Killing D4 calculado: $${price}`, { boss: options.selectedBoss, runs });
+    return price;
+  }
+
+  // 2. Diablo 4 - The Pit Artificer (runs × tier con descuento por volumen)
+  if (serviceType === 'the_pit_artificer') {
+    const runs = Number(gameDetails.runs) || 10;
+    const price = pricingCalculator.calculatePitPrice(runs, gameDetails.serviceMode || 'self', gameDetails.pitTier || 'tier3');
+    console.log(`⛏️ The Pit Artificer calculado: $${price}`, { runs, pitTier: gameDetails.pitTier });
+    return price;
+  }
+
+  // 3. Dune Awakening - Base Construction (el precio de cada tamaño vive en el propio servicio)
+  if (serviceType === 'dune_base_construction') {
+    const baseOption = service.baseConfig?.availableSizes?.find(s => s.key === gameDetails.baseSize);
+    let price = baseOption?.price || service.basePrice || 20;
+    if (gameDetails.addDefenses) price += 35;
+    if (gameDetails.addAutomation) price += 45;
+    if (gameDetails.addResources) price += 20;
+    if (gameDetails.addClassUnlock) price += 35;
+    console.log(`🏗️ Dune Base Construction calculado: $${price}`, { baseSize: gameDetails.baseSize });
+    return price;
+  }
+
+  // 4. Dune Awakening - Craft Vehicle (el precio de cada MK vive en el propio servicio)
+  if (serviceType === 'dune_craft_vehicle') {
+    const vehicle = service.vehicleConfig?.availableVehicles?.find(v => v.key === gameDetails.vehicleType);
+    const mk = vehicle?.mkOptions?.find(m => m.key === gameDetails.mkVersion) || vehicle?.mkOptions?.[0];
+    const price = mk?.price || service.basePrice || 10;
+    console.log(`🚗 Dune Craft Vehicle calculado: $${price}`, { vehicleType: gameDetails.vehicleType, mkVersion: gameDetails.mkVersion });
+    return price;
+  }
+
+  // 5. World of Warcraft MoP Classic - Raids
+  if (serviceType?.startsWith('mop_')) {
+    const price = pricingCalculator.calculateMopRaidPrice(serviceType, gameDetails);
+    console.log(`🏛️ MoP Raid (${serviceType}) calculado: $${price}`, { difficultyKey: gameDetails.difficultyKey });
+    return price;
+  }
+
+  // 6. Diablo 4 / PoE2 - Build con upgrade secuencial (Starter → ... → Endgame/Tormented).
+  //    El precio real es el de la tier MÁS ALTA que el cliente terminó seleccionando
+  //    (finalBuildKey), no el basePrice del servicio con el que entró a comprar.
+  if (['builds_starter', 'builds_ancestral', 'builds_mythic', 'builds_tormented'].includes(serviceType)) {
+    const finalBuildKey = gameDetails.finalBuildKey || serviceType;
+    const price = pricingCalculator.DIABLO_4_BUILD_PRICES[finalBuildKey]
+      ?? pricingCalculator.DIABLO_4_BUILD_PRICES[serviceType]
+      ?? service.basePrice
+      ?? 40;
+    console.log(`⚔️ Diablo 4 Build (final: ${finalBuildKey}) calculado: $${price}`);
+    return price;
+  }
+
+  if (['poe2_build_starter', 'poe2_build_advanced', 'poe2_build_endgame'].includes(serviceType)) {
+    const finalBuildKey = gameDetails.finalBuildKey || serviceType;
+    const price = pricingCalculator.POE2_BUILD_PRICES[finalBuildKey]
+      ?? pricingCalculator.POE2_BUILD_PRICES[serviceType]
+      ?? service.basePrice
+      ?? 120;
+    console.log(`⚔️ PoE2 Build (final: ${finalBuildKey}) calculado: $${price}`);
+    return price;
+  }
+
+  // 7. Path of Exile 2 - Custom Build (categoría + leveling + Divine Orbs + addons)
+  if (serviceType === 'poe2_custom_build') {
+    const options = {
+      category: gameDetails.customBuildCategory,
+      levelingOptionId: gameDetails.levelingOptionId,
+      divineOrbCount: gameDetails.divineOrbCount,
+      selectedAddonIds: gameDetails.selectedAddonIds
+    };
+    const price = pricingCalculator.calculatePrice(serviceType, {}, game, options);
+    console.log(`🧩 Custom Build PoE2 calculado: $${price}`, options);
+    return price;
+  }
+
+  // 8. Variable leveling
+  if (serviceType === 'variable_leveling') {
+    const price = pricingCalculator.calculatePrice(
+      serviceType,
+      { currentLevel: gameDetails.currentLevel || 1, desiredLevel: gameDetails.desiredLevel || 100 },
+      game,
+      {}
+    );
+    console.log(`📊 Variable leveling calculado: $${price}`);
+    return price;
+  }
+
+  // 9. Servicios "por cantidad" genéricos (coaching, mythic_plus, wins, etc.) —
+  //    la multiplicación por cantidad se hace ACÁ, no afuera, para no duplicarla.
+  if (pricingCalculator.supportsQuantity(serviceType)) {
+    const quantity = Number(gameDetails.quantity) || 1;
+    const price = pricingCalculator.calculatePrice(
+      serviceType,
+      { basePrice: service.basePrice, quantity },
+      game,
+      {}
+    );
+    console.log(`🔢 ${serviceType} × ${quantity} calculado: $${price}`);
+    return price;
+  }
+
+  // 10. PRIORIDAD: si el servicio tiene basePrice fijo en la DB, lo usamos (precio estático)
   if (service.basePrice && service.basePrice > 0) {
-    console.log(`💰 Usando basePrice de DB (${service.serviceType}): $${service.basePrice}`);
+    console.log(`💰 Usando basePrice de DB (${serviceType}): $${service.basePrice}`);
     return service.basePrice;
   }
   
-  // 2. Si es un pack y por alguna razón no tiene basePrice, usamos el mapeo actualizado
-  if (service.serviceType?.includes('_pack')) {
+  // 11. Si es un pack y por alguna razón no tiene basePrice, usamos el mapeo actualizado
+  if (serviceType?.includes('_pack')) {
     const packPrices = {
       // Diablo 4 - CORREGIDO
       'd4_starter_pack': 60,
@@ -79,35 +195,20 @@ const calculateServicePrice = (service, gameDetails) => {
       'last_epoch_starter_pack': 45,
       'last_epoch_endgame_pack': 100
     };
-    const price = packPrices[service.serviceType] || 60;
-    console.log(`📦 Pack ${service.serviceType} - Precio por defecto: $${price}`);
+    const price = packPrices[serviceType] || 60;
+    console.log(`📦 Pack ${serviceType} - Precio por defecto: $${price}`);
     return price;
   }
   
-  // 3. Variable leveling
-  if (service.serviceType === 'variable_leveling') {
-    const price = pricingCalculator.calculatePrice(
-      service.serviceType,
-      {
-        currentLevel: gameDetails?.currentLevel || 1,
-        desiredLevel: gameDetails?.desiredLevel || 100
-      },
-      service.game,
-      {}
-    );
-    console.log(`📊 Variable leveling calculado: $${price}`);
-    return price;
-  }
-  
-  // 4. Otros servicios
+  // 12. Fallback final
   const price = pricingCalculator.calculatePrice(
-    service.serviceType,
+    serviceType,
     { basePrice: service.basePrice },
-    service.game,
+    game,
     {}
   );
   
-  console.log(`💰 Precio calculado para ${service.serviceType}: $${price}`);
+  console.log(`💰 Precio calculado (fallback) para ${serviceType}: $${price}`);
   return price;
 };
 
@@ -203,7 +304,10 @@ export const createOrder = async (req, res) => {
 
     const calculatedPrice = calculateServicePrice(service, gameDetails);
     const quantity = gameDetails?.quantity || 1;
-    const finalCalculatedPrice = calculatedPrice * quantity;
+    // calculateServicePrice ya devuelve el precio TOTAL final (incluye la
+    // cantidad internamente cuando corresponde: boss killing, The Pit, servicios
+    // por cantidad, etc.). NO volver a multiplicar acá o se duplica el cálculo.
+    const finalCalculatedPrice = calculatedPrice;
     
     console.log('🔍 Validación de precio:', {
       serviceType: service.serviceType,
@@ -276,7 +380,23 @@ export const createOrder = async (req, res) => {
         quantity: quantity,
         currentLevel: gameDetails.currentLevel || 1,
         desiredLevel: gameDetails.desiredLevel || 50,
-        focusAreas: gameDetails.focusAreas || []
+        focusAreas: gameDetails.focusAreas || [],
+        buildSpecifications: gameDetails.buildSpecifications || '',
+        // Build con upgrade secuencial (Diablo 4 / PoE2)
+        ...(gameDetails.finalBuildKey && {
+          finalBuildKey: gameDetails.finalBuildKey,
+          finalBuild: gameDetails.finalBuild,
+          selectedUpgrades: gameDetails.selectedUpgrades || []
+        }),
+        // Custom Build PoE2 (categoría + leveling + Divine Orbs + addons)
+        ...(service.serviceType === 'poe2_custom_build' && {
+          customBuildCategory: gameDetails.customBuildCategory,
+          levelingOptionId: gameDetails.levelingOptionId,
+          levelingOptionLabel: gameDetails.levelingOptionLabel,
+          divineOrbCount: gameDetails.divineOrbCount || 0,
+          selectedAddonIds: gameDetails.selectedAddonIds || [],
+          selectedAddonNames: gameDetails.selectedAddonNames || []
+        })
       },
       totalPrice: parseFloat(finalPrice.toFixed(2)),
       priceBreakdown: priceBreakdown || [{

@@ -385,24 +385,47 @@ router.patch('/orders/:orderId/status', async (req, res) => {
 // Función compartida para actualizar estado
 async function updateOrderStatus(req, res) {
   const { orderId } = req.params;
-  const { status, notes } = req.body;
+  const { status, notes, forceComplete } = req.body;
 
   console.log(`🔄 Admin actualizando orden ${orderId} a estado: ${status} (${req.method})`);
 
   try {
+    // No se puede marcar "completed" si el pago no está confirmado — salvo
+    // que el admin lo fuerce explícitamente con forceComplete: true (por
+    // ejemplo, un pago manual/en efectivo que se registra aparte).
+    if (status === 'completed' && !forceComplete) {
+      const existingOrder = await Order.findById(orderId).select('paymentStatus');
+      if (!existingOrder) {
+        return res.status(404).json({ success: false, message: 'Orden no encontrada' });
+      }
+      if (!['paid', 'completed'].includes(existingOrder.paymentStatus)) {
+        return res.status(400).json({
+          success: false,
+          message: `No se puede completar: el pago está en estado "${existingOrder.paymentStatus}", no confirmado. Confirmá el pago primero, o mandá forceComplete: true si es intencional (ej. pago manual).`
+        });
+      }
+    }
+
+    const updateFields = {
+      status,
+      $push: {
+        notes: {
+          content: `Estado cambiado a ${status} por administrador${notes ? `: ${notes}` : ''}`,
+          type: 'admin',
+          author: req.user._id,
+          createdAt: new Date()
+        }
+      }
+    };
+
+    // Timestamp real de cuándo se completó (para el timeline del cliente)
+    if (status === 'completed') {
+      updateFields.completedAt = new Date();
+    }
+
     const order = await Order.findByIdAndUpdate(
       orderId,
-      { 
-        status,
-        $push: {
-          notes: {
-            content: `Estado cambiado a ${status} por administrador${notes ? `: ${notes}` : ''}`,
-            type: 'admin',
-            author: req.user._id,
-            createdAt: new Date()
-          }
-        }
-      },
+      updateFields,
       { new: true }
     ).populate('user', 'username email')
      .populate('service', 'name game');

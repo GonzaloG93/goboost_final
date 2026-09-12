@@ -1,10 +1,23 @@
 // backend/routes/boosts.js - VERSIÓN COMPLETA CON MOP RAIDS Y CALL OF DUTY
 
 import express from 'express';
+import multer from 'multer';
 import BoostService from '../models/BoostService.js';
 import { adminAuth } from '../middleware/authMiddleware.js';
+import cloudinary from '../config/cloudinary.js';
 
 const router = express.Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Solo se permiten archivos de imagen'));
+    }
+    cb(null, true);
+  }
+});
 
 // ============================================
 // CONFIGURACIÓN DE JUEGOS - ACTUALIZADA
@@ -77,7 +90,8 @@ const GAME_SPECIFIC_SERVICES = {
     'poe2_leveling_40', 'poe2_leveling_70', 'poe2_leveling_90',
     'poe2_starter_pack', 'poe2_endgame_pack', 'builds', 'poe2_starter_build',
     'poe2_endgame_build', 'build_services', 'powerleveling', 'leveling',
-    'currency_farming', 'boss_killing', 'uber_services', 'coaching', 'custom_build'
+    'currency_farming', 'boss_killing', 'uber_services', 'coaching', 'custom_build',
+    'poe2_custom_build'
   ],
   'Dune Awakening': [
     'powerleveling',
@@ -137,6 +151,56 @@ router.get('/games', async (req, res) => {
   }
 });
 
+// ✅ NUEVO: expone la config de precios (config/pricingConfig.js) para que el
+// frontend la sincronice en tiempo de ejecución. Fuente única de verdad:
+// cambiar un precio acá (backend) y redeployar solo el backend alcanza.
+router.get('/pricing-config', async (req, res) => {
+  try {
+    const pricingConfig = (await import('../config/pricingConfig.js')).default;
+    res.json({ success: true, pricingConfig });
+  } catch (error) {
+    console.error('❌ Error en /pricing-config:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ✅ NUEVO: sube una imagen de banner a Cloudinary y devuelve la URL final.
+// Solo admin. El frontend manda la imagen como multipart/form-data (campo "image").
+router.post('/upload-banner', adminAuth, (req, res, next) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      const message = err.code === 'LIMIT_FILE_SIZE'
+        ? 'La imagen no puede pesar más de 5MB'
+        : err.message || 'Error al procesar la imagen';
+      return res.status(400).json({ success: false, message });
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No se recibió ninguna imagen' });
+    }
+
+    const uploadFromBuffer = () => new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: 'gonboost/banners', resource_type: 'image' },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+
+    const result = await uploadFromBuffer();
+    res.json({ success: true, url: result.secure_url });
+  } catch (error) {
+    console.error('❌ Error subiendo banner a Cloudinary:', error);
+    res.status(500).json({ success: false, message: error.message || 'Error al subir la imagen' });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const { game, serviceType, category, available, limit } = req.query;
@@ -154,7 +218,6 @@ router.get('/', async (req, res) => {
     const servicesWithPrice = services.map(service => {
       const serviceObj = service.toObject();
       if (service.basePrice !== undefined) serviceObj.price = service.basePrice;
-      serviceObj.id = serviceObj._id.toString(); // ✅ id explícito para el frontend
       return serviceObj;
     });
 
@@ -203,7 +266,6 @@ router.get('/:id', async (req, res) => {
 
     const serviceObj = service.toObject();
     if (service.basePrice !== undefined) serviceObj.price = service.basePrice;
-    serviceObj.id = serviceObj._id.toString(); // ✅ id explícito
 
     res.json({ success: true, ...serviceObj });
   } catch (error) {
@@ -228,7 +290,6 @@ router.get('/debug/all', async (req, res) => {
     const servicesWithPrice = allServices.map(service => {
       const serviceObj = service.toObject();
       if (service.basePrice !== undefined) serviceObj.price = service.basePrice;
-      serviceObj.id = serviceObj._id.toString(); // ✅ id explícito
       return serviceObj;
     });
 
@@ -240,7 +301,6 @@ router.get('/debug/all', async (req, res) => {
       availableServices: availableServices.map(s => {
         const obj = s.toObject();
         if (s.basePrice !== undefined) obj.price = s.basePrice;
-        obj.id = obj._id.toString(); // ✅ id explícito
         return obj;
       })
     });
@@ -260,12 +320,50 @@ router.get('/admin/all', adminAuth, async (req, res) => {
     const servicesWithPrice = services.map(service => {
       const serviceObj = service.toObject();
       if (service.basePrice !== undefined) serviceObj.price = service.basePrice;
-      serviceObj.id = serviceObj._id.toString(); // ✅ id explícito
       return serviceObj;
     });
     res.json({ success: true, allServices: servicesWithPrice, total: services.length });
   } catch (error) {
     console.error('❌ ERROR en admin endpoint:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ✅ NUEVO: agrupa servicios por (juego + tipo + nombre normalizado) y devuelve
+// solo los grupos con más de 1 resultado — solo lectura, no borra nada.
+router.get('/admin/duplicates', adminAuth, async (req, res) => {
+  try {
+    const services = await BoostService.find({}).sort({ createdAt: -1 });
+
+    const groups = {};
+    services.forEach((service) => {
+      const key = [
+        service.game || '',
+        service.serviceType || '',
+        (service.name || '').trim().toLowerCase()
+      ].join('|');
+
+      if (!groups[key]) groups[key] = [];
+      groups[key].push({
+        _id: service._id,
+        name: service.name,
+        game: service.game,
+        serviceType: service.serviceType,
+        basePrice: service.basePrice,
+        available: service.available,
+        createdAt: service.createdAt
+      });
+    });
+
+    const duplicateGroups = Object.values(groups).filter((group) => group.length > 1);
+
+    res.json({
+      success: true,
+      duplicateGroups,
+      totalDuplicateServices: duplicateGroups.reduce((sum, g) => sum + g.length, 0)
+    });
+  } catch (error) {
+    console.error('❌ Error buscando duplicados:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -331,7 +429,6 @@ router.post('/', adminAuth, async (req, res) => {
 
     const responseObj = service.toObject();
     if (service.basePrice !== undefined) responseObj.price = service.basePrice;
-    responseObj.id = responseObj._id.toString(); // ✅ id explícito
 
     if (req.io) req.io.emit('service_created_broadcast', responseObj);
 
@@ -393,7 +490,6 @@ router.put('/:id', adminAuth, async (req, res) => {
 
     const responseObj = service.toObject();
     if (service.basePrice !== undefined) responseObj.price = service.basePrice;
-    responseObj.id = responseObj._id.toString(); // ✅ id explícito
 
     if (req.io) req.io.emit('service_updated_broadcast', responseObj);
 

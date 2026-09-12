@@ -4,11 +4,28 @@ import {
   getUserTransactions,
   createTransaction,
   getBalance,
-  updateTransactionStatus
+  updateTransactionStatus,
+  kofiWebhook,           // <-- NUEVA IMPORTACIÓN
+  notifyManualPayment    // <-- NUEVA IMPORTACIÓN
 } from '../controllers/transactionController.js';
 import { auth } from '../middleware/authMiddleware.js';
+import Transaction from '../models/Transaction.js'; // <-- IMPORTACIÓN CORREGIDA (Faltaba en tu archivo original)
 
 const router = express.Router();
+
+// ==========================================
+// NUEVAS RUTAS DE KO-FI / PAGOS MANUALES
+// ==========================================
+
+// Webhook de Ko-fi (Ruta PÚBLICA, Ko-fi usa su propio token de verificación en el body)
+router.post('/webhooks/kofi', kofiWebhook);
+
+// Notificar pago manual de Ko-fi (Ruta PROTEGIDA)
+router.post('/orders/:id/notify-payment', auth, notifyManualPayment);
+
+// ==========================================
+// RUTAS DE TRANSACCIONES EXISTENTES
+// ==========================================
 
 // Get user transactions with filters
 router.get('/', auth, getUserTransactions);

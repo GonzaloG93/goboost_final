@@ -21,6 +21,7 @@ import {
   POE2_BUILDS, 
   WOW_TBC_PACKS, 
   BUILD_DESCRIPTIONS,
+  CUSTOM_BUILD_CONFIG,
   formatPrice,
   normalizeServiceType 
 } from '../config/buildsConfig';
@@ -37,6 +38,8 @@ import PowerlevelingOptions from '../components/order/PowerlevelingOptions';
 import ParagonLevelingOptions from '../components/order/ParagonLevelingOptions';
 import Diablo4BuildOptions from '../components/order/Diablo4BuildOptions';
 import PoE2BuildOptions from '../components/order/PoE2BuildOptions';
+import PoE2CustomBuildOptions from '../components/order/PoE2CustomBuildOptions';
+import ServiceHeaderBanner from '../components/order/ServiceHeaderBanner';
 import PoE2BundleOptions from '../components/order/PoE2BundleOptions';
 import TbcPackOptions from '../components/order/TbcPackOptions';
 import OtherBuildOptions from '../components/order/OtherBuildOptions';
@@ -100,6 +103,12 @@ const Order = () => {
   const [addBuildToLeveling, setAddBuildToLeveling] = useState(false);
   const [selectedLevelingBuildTier, setSelectedLevelingBuildTier] = useState('starter');
   const [buildSpecifications, setBuildSpecifications] = useState('');
+
+  // PoE2 Custom Build States
+  const [selectedCustomBuildCategory, setSelectedCustomBuildCategory] = useState('Early-game');
+  const [selectedCustomBuildLevelingOption, setSelectedCustomBuildLevelingOption] = useState('none');
+  const [customBuildDivineOrbCount, setCustomBuildDivineOrbCount] = useState(0);
+  const [selectedCustomBuildAddons, setSelectedCustomBuildAddons] = useState({});
 
   // Dune States
   const [selectedDuneBaseSize, setSelectedDuneBaseSize] = useState('');
@@ -177,6 +186,12 @@ const Order = () => {
     if (!service) return false;
     const normalized = normalizeServiceType(service.serviceType);
     return normalized === 'poe2_starter_pack' || normalized === 'poe2_endgame_pack';
+  }, [service]);
+
+  const isPoE2CustomBuild = useCallback(() => {
+    if (!service) return false;
+    const normalized = normalizeServiceType(service.serviceType);
+    return normalized === 'poe2_custom_build';
   }, [service]);
 
   const isBossKillingD4 = useCallback(() => {
@@ -260,7 +275,12 @@ const Order = () => {
       return { 
         builds: DIABLO_4_BUILDS, 
         tiers: ['starter', 'ancestral', 'mythic', 'tormented'], 
-        prices: { starter: 30, ancestral: 50, mythic: 150, tormented: 200 } 
+        prices: {
+          starter: DIABLO_4_BUILDS.builds_starter.price,
+          ancestral: DIABLO_4_BUILDS.builds_ancestral.price,
+          mythic: DIABLO_4_BUILDS.builds_mythic.price,
+          tormented: DIABLO_4_BUILDS.builds_tormented.price
+        }
       };
     }
 
@@ -268,7 +288,7 @@ const Order = () => {
       return { 
         builds: DIABLO_4_BUILDS, 
         tiers: ['starter'], 
-        prices: { starter: 30 } 
+        prices: { starter: DIABLO_4_BUILDS.builds_starter.price } 
       };
     }
 
@@ -276,7 +296,11 @@ const Order = () => {
       return { 
         builds: POE2_BUILDS, 
         tiers: ['starter', 'advanced', 'endgame'], 
-        prices: { starter: 40, advanced: 65, endgame: 85 } 
+        prices: {
+          starter: POE2_BUILDS.poe2_build_starter.price,
+          advanced: POE2_BUILDS.poe2_build_advanced.price,
+          endgame: POE2_BUILDS.poe2_build_endgame.price
+        }
       };
     }
 
@@ -383,6 +407,14 @@ const Order = () => {
       newPrice = WOW_TBC_PACKS[service.serviceType]?.price || 349;
     } else if (isPoE2Bundle()) {
       newPrice = service.serviceType === 'poe2_starter_pack' ? 105 : 225;
+    } else if (isPoE2CustomBuild()) {
+      const customOptions = {
+        category: selectedCustomBuildCategory,
+        levelingOptionId: selectedCustomBuildLevelingOption,
+        divineOrbCount: customBuildDivineOrbCount,
+        selectedAddonIds: Object.keys(selectedCustomBuildAddons).filter(id => selectedCustomBuildAddons[id])
+      };
+      newPrice = calculatePriceFromPricing(service.serviceType, {}, service.game, customOptions);
     } else if (isDuneBundle()) {
       if (service.serviceType === 'dune_starter_pack') newPrice = 45;
       else if (service.serviceType === 'dune_advanced_pack') newPrice = 99;
@@ -515,6 +547,15 @@ const Order = () => {
         }
         breakdown.push({ item: 'TOTAL', amount: finalPrice, isTotal: true });
         setCurrentBreakdown(breakdown);
+      } else if (isPoE2CustomBuild()) {
+        const customOptions = {
+          category: selectedCustomBuildCategory,
+          levelingOptionId: selectedCustomBuildLevelingOption,
+          divineOrbCount: customBuildDivineOrbCount,
+          selectedAddonIds: Object.keys(selectedCustomBuildAddons).filter(id => selectedCustomBuildAddons[id])
+        };
+        const breakdown = getPriceBreakdown(service.serviceType, {}, service.game, customOptions);
+        setCurrentBreakdown(breakdown);
       } else if (!isDiablo4Build() && !isPoE2Build() && !isWowTbcPack() && !isPoE2Bundle() && !isOtherBuild()) {
         const options = { buildAddon: false, buildPrice: 0, buildName: '' };
         if (addBuildToLeveling) {
@@ -547,7 +588,7 @@ const Order = () => {
       }
     }
 
-  }, [service, selectedBuilds, selectedPoE2Builds, formData, addBuildToLeveling, selectedLevelingBuildTier, calculateTotalPrice, getPriceBreakdown, getAvailableBuildsForLeveling, isDiablo4Build, isPoE2Build, isWowTbcPack, isPoE2Bundle, isOtherBuild, isDuneBaseConstruction, isDuneBundle, isDuneCraftVehicle, isCustomService, isVariablePriceService, selectedDuneBaseSize, selectedBaseConfig, addDefenses, addAutomation, addResources, addClassUnlock, selectedVehicle, selectedMKKey, selectedMK, selectedVehicleConfig, isBossKillingD4, selectedBoss, runQuantity, serviceMode, includeMaterials, materialSets, selectedBossConfig, calculatePriceFromPricing, isThePitArtificer, pitTier, pitRuns, pitMode, isMopRaid, mopRaidOption, mopPriorityLoot, mopExtraItems]);
+  }, [service, selectedBuilds, selectedPoE2Builds, formData, addBuildToLeveling, selectedLevelingBuildTier, calculateTotalPrice, getPriceBreakdown, getAvailableBuildsForLeveling, isDiablo4Build, isPoE2Build, isWowTbcPack, isPoE2Bundle, isPoE2CustomBuild, selectedCustomBuildCategory, selectedCustomBuildLevelingOption, customBuildDivineOrbCount, selectedCustomBuildAddons, isOtherBuild, isDuneBaseConstruction, isDuneBundle, isDuneCraftVehicle, isCustomService, isVariablePriceService, selectedDuneBaseSize, selectedBaseConfig, addDefenses, addAutomation, addResources, addClassUnlock, selectedVehicle, selectedMKKey, selectedMK, selectedVehicleConfig, isBossKillingD4, selectedBoss, runQuantity, serviceMode, includeMaterials, materialSets, selectedBossConfig, calculatePriceFromPricing, isThePitArtificer, pitTier, pitRuns, pitMode, isMopRaid, mopRaidOption, mopPriorityLoot, mopExtraItems]);
 
   // ========== FETCH SERVICE ==========
   const fetchService = useCallback(async () => {
@@ -747,6 +788,7 @@ const Order = () => {
         buildDetails = {
           ...buildDetails,
           buildType: service.serviceType,
+          finalBuildKey,
           selectedUpgrades: selectedTiers.filter(t => t !== service.serviceType).map(t => DIABLO_4_BUILDS[t]?.name || t),
           finalBuild: DIABLO_4_BUILDS[finalBuildKey]?.name || 'Build',
           buildSpecifications
@@ -760,8 +802,24 @@ const Order = () => {
         buildDetails = {
           ...buildDetails,
           buildType: service.serviceType,
+          finalBuildKey,
           selectedUpgrades: selectedTiers.filter(t => t !== service.serviceType).map(t => POE2_BUILDS[t]?.name || t),
           finalBuild: POE2_BUILDS[finalBuildKey]?.name || 'Build',
+          buildSpecifications
+        };
+      }
+
+      if (isPoE2CustomBuild()) {
+        const selectedAddonIds = Object.keys(selectedCustomBuildAddons).filter(id => selectedCustomBuildAddons[id]);
+        const levelingOpt = CUSTOM_BUILD_CONFIG.levelingOptions.find(o => o.id === selectedCustomBuildLevelingOption);
+        buildDetails = {
+          ...buildDetails,
+          customBuildCategory: selectedCustomBuildCategory,
+          levelingOptionId: selectedCustomBuildLevelingOption,
+          levelingOptionLabel: levelingOpt?.label || 'No Leveling',
+          divineOrbCount: customBuildDivineOrbCount,
+          selectedAddonIds,
+          selectedAddonNames: selectedAddonIds.map(id => CUSTOM_BUILD_CONFIG.addons.find(a => a.id === id)?.name).filter(Boolean),
           buildSpecifications
         };
       }
@@ -988,6 +1046,22 @@ const Order = () => {
       return <PoE2BundleOptions {...commonProps} />;
     }
 
+    if (isPoE2CustomBuild()) {
+      return (
+        <PoE2CustomBuildOptions
+          {...commonProps}
+          selectedCategory={selectedCustomBuildCategory}
+          setSelectedCategory={setSelectedCustomBuildCategory}
+          selectedLevelingOption={selectedCustomBuildLevelingOption}
+          setSelectedLevelingOption={setSelectedCustomBuildLevelingOption}
+          divineOrbCount={customBuildDivineOrbCount}
+          setDivineOrbCount={setCustomBuildDivineOrbCount}
+          selectedAddons={selectedCustomBuildAddons}
+          setSelectedAddons={setSelectedCustomBuildAddons}
+        />
+      );
+    }
+
     if (isOtherBuild()) {
       return <OtherBuildOptions {...commonProps} />;
     }
@@ -1188,31 +1262,23 @@ const Order = () => {
           </div>
 
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-3xl">{getServiceIcon()}</span>
-              <h1 className="text-3xl md:text-4xl font-black text-gray-900">
-                {service.name || formatServiceType(service.serviceType)}
-              </h1>
-            </div>
-            <div className="flex items-center gap-4 mb-3">
-              <p className="text-gray-600">{service.game}</p>
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                {isCustomService() 
+            <ServiceHeaderBanner
+              service={service}
+              icon={getServiceIcon()}
+              badgeLabel={
+                isCustomService()
                   ? (service.priceType?.charAt(0).toUpperCase() + service.priceType?.slice(1) || 'Custom')
                   : formatServiceType(service.serviceType)
-                }
-              </span>
-            </div>
-            {service.description && 
-             !isPoE2Bundle() && 
-             !isDuneBundle() && 
-             !isCustomService() && 
-             !isBossKillingD4() && 
-             !isThePitArtificer() && (
-              <div className="mt-3 p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
-                <p className="text-gray-700 text-base leading-relaxed">{service.description}</p>
-              </div>
-            )}
+              }
+              extraBadge={
+                (isPoE2Build() || isPoE2CustomBuild()) && (
+                  <div className="hidden sm:flex items-center gap-2 rounded-lg bg-slate-950/80 px-3.5 py-2 border border-slate-800 text-xs text-emerald-300 backdrop-blur-md">
+                    <span className="text-base">💎</span>
+                    <span>Extra Divine Orbs Available</span>
+                  </div>
+                )
+              }
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

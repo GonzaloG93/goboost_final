@@ -7,6 +7,11 @@ const reviewSchema = new mongoose.Schema({
     ref: 'Order',
     required: true
   },
+  service: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'BoostService',
+    required: true
+  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -15,7 +20,7 @@ const reviewSchema = new mongoose.Schema({
   booster: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false
   },
   rating: {
     type: Number,
@@ -48,6 +53,7 @@ const reviewSchema = new mongoose.Schema({
 
 // Índices para mejor performance
 reviewSchema.index({ booster: 1, createdAt: -1 });
+reviewSchema.index({ service: 1, status: 1, createdAt: -1 });
 reviewSchema.index({ order: 1 }, { unique: true }); // Una review por orden
 reviewSchema.index({ rating: 1 });
 

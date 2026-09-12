@@ -1,4 +1,4 @@
-// App.jsx - PRODUCCIÓN
+// App.jsx - VERSIÓN CORREGIDA Y DEFINITIVA
 import React, { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useParams, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -13,12 +13,10 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import SEO from './components/SEO/SEO';
 import Analytics from './components/SEO/Analytics';
-import ErrorBoundary from './components/ErrorBoundary';
-import TawkToWidget from './components/TawkToWidget';
 
 import './i18n';
-import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from './i18n';
-import './App.css';
+import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, preloadLanguages } from './i18n';
+import { syncPricingConfig } from './config/pricingSync';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -38,13 +36,17 @@ const OrderDetails     = lazy(() => import('./pages/OrderDetails'));
 const TermsOfService   = lazy(() => import('./pages/TermsOfService'));
 const PrivacyPolicy    = lazy(() => import('./pages/PrivacyPolicy'));
 
-const AdminLayout        = lazy(() => import('./components/admin/AdminLayout'));
-const AdminDashboard     = lazy(() => import('./components/admin/Dashboard'));
-const OrdersManagement   = lazy(() => import('./components/admin/OrdersManagement'));
-const OrderDetail        = lazy(() => import('./components/admin/OrderDetail'));
-const UsersManagement    = lazy(() => import('./components/admin/UsersManagement'));
+const AdminLayout       = lazy(() => import('./components/admin/AdminLayout'));
+const AdminDashboard    = lazy(() => import('./components/admin/Dashboard'));
+const OrdersManagement  = lazy(() => import('./components/admin/OrdersManagement'));
+const OrderDetail       = lazy(() => import('./components/admin/OrderDetail'));
+const UsersManagement   = lazy(() => import('./components/admin/UsersManagement'));
 const ServicesManagement = lazy(() => import('./components/admin/ServicesManagement'));
-const TicketsManagement  = lazy(() => import('./components/admin/TicketsManagement'));
+const TicketsManagement = lazy(() => import('./components/admin/TicketsManagement'));
+
+import ErrorBoundary from './components/ErrorBoundary';
+import TawkToWidget from './components/TawkToWidget';
+import './App.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,7 +54,7 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000,
       cacheTime: 10 * 60 * 1000,
       retry: 1,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: import.meta.env.PROD,
       refetchOnMount: false,
       refetchOnReconnect: true,
     },
@@ -68,29 +70,28 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// Layout para idiomas con prefijo (/de, /es, etc.)
-const LangPrefixLayout = () => {
+// ✅ LanguageLayout: Sincroniza i18n con el parámetro lang de la URL sin re-montar el árbol
+const LanguageLayout = () => {
   const { i18n } = useTranslation();
   const { lang } = useParams();
+  const navigate = useNavigate();
+
+  const isValidLang = lang && SUPPORTED_LANGUAGES.includes(lang);
 
   useEffect(() => {
-    if (lang && SUPPORTED_LANGUAGES.includes(lang) && i18n.language !== lang) {
-      i18n.changeLanguage(lang);
+    if (lang && !isValidLang) {
+      navigate('/', { replace: true });
+      return;
     }
-  }, [lang, i18n]);
 
-  return <Outlet key={lang} />;
-};
+    const targetLang = isValidLang ? lang : DEFAULT_LANGUAGE;
 
-// Layout para inglés sin prefijo (/)
-const DefaultLangLayout = () => {
-  const { i18n } = useTranslation();
-
-  useEffect(() => {
-    if (i18n.language !== DEFAULT_LANGUAGE) {
-      i18n.changeLanguage(DEFAULT_LANGUAGE);
+    if (i18n.language !== targetLang) {
+      i18n.changeLanguage(targetLang);
+      document.documentElement.lang = targetLang;
+      localStorage.setItem('preferredLanguage', targetLang);
     }
-  }, [i18n]);
+  }, [lang, isValidLang, i18n, navigate]);
 
   return <Outlet />;
 };
@@ -99,7 +100,9 @@ const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) return <LoadingSpinner />;
-  if (!user || user.role !== 'admin') return <Navigate to="/" state={{ from: location }} replace />;
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
   return children;
 };
 
@@ -130,15 +133,41 @@ const BoosterRoute = ({ children }) => {
   return user && user.role === 'booster' ? children : <Navigate to={homePath} replace />;
 };
 
-// Redirige al idioma preferido del usuario si no es inglés
+// ✅ RootRedirect: Maneja únicamente la ruta raíz '/'
+//
+// IMPORTANTE: este componente NO debe pelear con la navegación explícita del
+// usuario. Si el usuario está en '/' es porque quiere estar en inglés (lo
+// eligió con el selector, tocó "atrás", o entró a un link al home) — no hay
+// que reinterpretar esa intención leyendo localStorage de nuevo, porque
+// LanguageLayout todavía no tuvo chance de sincronizar i18n.language en su
+// useEffect (que corre DESPUÉS de este render), y eso generaba un rebote
+// inmediato de vuelta a /es (o al idioma guardado) cada vez que se volvía
+// a la raíz, incluso justo después de elegir inglés.
+//
+// El auto-redirect al idioma guardado/preferido del navegador solo tiene
+// sentido en la primera visita real al sitio, nunca en visitas posteriores
+// a la raíz.
 const RootRedirect = () => {
+  const hasVisitedBefore = localStorage.getItem('hasVisitedGonboost') === 'true';
   const savedLang = localStorage.getItem('preferredLanguage');
-  const browserLang = navigator.language?.split('-')[0];
-  let targetLang = DEFAULT_LANGUAGE;
-  if (savedLang && SUPPORTED_LANGUAGES.includes(savedLang)) targetLang = savedLang;
-  else if (browserLang && SUPPORTED_LANGUAGES.includes(browserLang)) targetLang = browserLang;
-  if (targetLang === DEFAULT_LANGUAGE) return <Home />;
-  return <Navigate to={`/${targetLang}`} replace />;
+
+  useEffect(() => {
+    if (!hasVisitedBefore) {
+      localStorage.setItem('hasVisitedGonboost', 'true');
+    }
+  }, [hasVisitedBefore]);
+
+  const shouldAutoRedirect =
+    !hasVisitedBefore &&
+    savedLang &&
+    savedLang !== DEFAULT_LANGUAGE &&
+    SUPPORTED_LANGUAGES.includes(savedLang);
+
+  if (shouldAutoRedirect) {
+    return <Navigate to={`/${savedLang}`} replace />;
+  }
+
+  return <Home />;
 };
 
 const NotFoundPage = () => {
@@ -164,7 +193,6 @@ const NotFoundPage = () => {
   );
 };
 
-
 function AppContent() {
   const location = useLocation();
   return (
@@ -180,7 +208,7 @@ function AppContent() {
       <main className="relative min-h-[calc(100vh-4rem)]" role="main">
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
-            {/* Rutas fuera del sistema de idiomas */}
+            {/* Rutas sin i18n */}
             <Route path="/payment/cancel" element={<PaymentCancel />} />
             <Route path="/paypal/success" element={<PayPalSuccess />} />
 
@@ -205,31 +233,29 @@ function AppContent() {
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Route>
 
-            {/* Idiomas no-default: /es, /de, /fr, /nl, /pt, /ru */}
-            {SUPPORTED_LANGUAGES.filter(l => l !== DEFAULT_LANGUAGE).map(lang => (
-              <Route key={lang} path={`/${lang}`} element={<LangPrefixLayout />}>
-                <Route index element={<Home />} />
-                <Route path="services" element={<ServicesPage />} />
-                <Route path="service/:serviceId" element={<ServiceDetail />} />
-                <Route path="login" element={<Login />} />
-                <Route path="register" element={<Register />} />
-                <Route path="terms" element={<TermsOfService />} />
-                <Route path="terms-of-service" element={<TermsOfService />} />
-                <Route path="privacy" element={<PrivacyPolicy />} />
-                <Route path="privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="order/:serviceId" element={<AuthenticatedRoute><Order /></AuthenticatedRoute>} />
-                <Route path="checkout/:orderId" element={<AuthenticatedRoute><Checkout /></AuthenticatedRoute>} />
-                <Route path="orders/:orderId" element={<AuthenticatedRoute><OrderDetails /></AuthenticatedRoute>} />
-                <Route path="support" element={<AuthenticatedRoute><SupportChat /></AuthenticatedRoute>} />
-                <Route path="my-orders" element={<AuthenticatedRoute><MyOrders /></AuthenticatedRoute>} />
-                <Route path="dashboard" element={<CustomerRoute><Dashboard /></CustomerRoute>} />
-                <Route path="booster/dashboard" element={<BoosterRoute><BoosterDashboard /></BoosterRoute>} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Route>
-            ))}
+            {/* RUTAS CON PREFIJO DE IDIOMA (/es, /de, /fr, etc.) */}
+            <Route path="/:lang" element={<LanguageLayout />}>
+              <Route index element={<Home />} />
+              <Route path="services" element={<ServicesPage />} />
+              <Route path="service/:serviceId" element={<ServiceDetail />} />
+              <Route path="login" element={<Login />} />
+              <Route path="register" element={<Register />} />
+              <Route path="terms" element={<TermsOfService />} />
+              <Route path="terms-of-service" element={<TermsOfService />} />
+              <Route path="privacy" element={<PrivacyPolicy />} />
+              <Route path="privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="order/:serviceId" element={<AuthenticatedRoute><Order /></AuthenticatedRoute>} />
+              <Route path="checkout/:orderId" element={<AuthenticatedRoute><Checkout /></AuthenticatedRoute>} />
+              <Route path="orders/:orderId" element={<AuthenticatedRoute><OrderDetails /></AuthenticatedRoute>} />
+              <Route path="support" element={<AuthenticatedRoute><SupportChat /></AuthenticatedRoute>} />
+              <Route path="my-orders" element={<AuthenticatedRoute><MyOrders /></AuthenticatedRoute>} />
+              <Route path="dashboard" element={<CustomerRoute><Dashboard /></CustomerRoute>} />
+              <Route path="booster/dashboard" element={<BoosterRoute><BoosterDashboard /></BoosterRoute>} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Route>
 
-            {/* Inglés — sin prefijo */}
-            <Route path="/" element={<DefaultLangLayout />}>
+            {/* RUTAS EN INGLÉS (Raíz sin prefijo) */}
+            <Route path="/" element={<LanguageLayout />}>
               <Route index element={<RootRedirect />} />
               <Route path="services" element={<ServicesPage />} />
               <Route path="service/:serviceId" element={<ServiceDetail />} />
@@ -248,7 +274,7 @@ function AppContent() {
               <Route path="booster/dashboard" element={<BoosterRoute><BoosterDashboard /></BoosterRoute>} />
             </Route>
 
-            {/* 404 global */}
+            {/* 404 Global */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
@@ -261,6 +287,8 @@ function AppContent() {
 }
 
 function App() {
+  useEffect(() => { preloadLanguages(); }, []);
+  useEffect(() => { syncPricingConfig(); }, []);
   return (
     <HelmetProvider>
       <ErrorBoundary>

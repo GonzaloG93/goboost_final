@@ -1,13 +1,12 @@
 // frontend/src/config/buildsConfig.js
-// Configuraciones de builds y packs para todos los juegos
 
 export const DIABLO_4_BUILDS = {
   'builds_starter': {
     id: 'builds_starter',
     name: 'Starter Build',
-    price: 30,
+    price: 40,
     nextUpgrade: 'builds_ancestral',
-    upgradePrice: 20,
+    upgradePrice: 90,
     description: 'Perfect for beginners starting their journey',
     tier: 'starter',
     features: [
@@ -25,9 +24,9 @@ export const DIABLO_4_BUILDS = {
   'builds_ancestral': {
     id: 'builds_ancestral',
     name: 'Ancestral Build',
-    price: 50,
+    price: 130,
     nextUpgrade: 'builds_mythic',
-    upgradePrice: 100,
+    upgradePrice: 50,
     description: 'Advanced build for experienced players',
     tier: 'ancestral',
     features: [
@@ -46,9 +45,9 @@ export const DIABLO_4_BUILDS = {
   'builds_mythic': {
     id: 'builds_mythic',
     name: 'Mythic Build',
-    price: 150,
+    price: 180,
     nextUpgrade: 'builds_tormented',
-    upgradePrice: 50,
+    upgradePrice: 70,
     description: 'Elite build for end-game content',
     tier: 'mythic',
     requiresLevel: 60,
@@ -69,7 +68,7 @@ export const DIABLO_4_BUILDS = {
   'builds_tormented': {
     id: 'builds_tormented',
     name: 'Tormented Build',
-    price: 200,
+    price: 250,
     nextUpgrade: null,
     upgradePrice: 0,
     description: 'Ultimate build for Tormented bosses',
@@ -95,54 +94,68 @@ export const POE2_BUILDS = {
   'poe2_build_starter': {
     id: 'poe2_build_starter',
     name: 'Starter Build',
-    price: 40,
+    price: 120,
     nextUpgrade: 'poe2_build_advanced',
-    upgradePrice: 25,
+    upgradePrice: 125,
     description: 'Perfect for beginners starting their journey in Wraeclast',
     tier: 'starter',
+    allowDivineOrbs: true,
+    bannerImage: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80',
     features: [
-      'Full campaign skill tree optimization',
-      'Leveling gear recommendations',
-      'Basic mapping capability (T1-T5)',
-      'Ascendancy points allocation guide',
-      'Gem setup for leveling',
-      'Basic resistances cap'
+      'Starter character at level 60.',
+      'Gear set for your build worth 5 Divine Orbs.',
+      'Full campaign and permanent bonuses from the side quests.',
+      '8 Ascendancy Points unlocked.',
+      '100x Exalted Orbs.',
+      '50x Orbs of Alchemy.',
+      'All Gems for the build are set up.',
+      'All the Currency and Items found during the leveling process.',
+      '5x Waystones of each tier — lvl 1, 3, and 5.'
     ]
   },
   'poe2_build_advanced': {
     id: 'poe2_build_advanced',
     name: 'Advanced Build',
-    price: 65,
+    price: 245,
     nextUpgrade: 'poe2_build_endgame',
-    upgradePrice: 20,
+    upgradePrice: 125,
     description: 'Advanced build for mid-tier mapping and early bosses',
     tier: 'advanced',
+    bannerImage: '/assets/banners/poe2-advanced-banner.jpg',
     features: [
-      'Optimized for T6-T12 maps',
-      'Early boss killing capability',
-      'Full gear recommendations with trade links',
-      'Mid-tier unique items',
-      'Quality gems setup',
-      'Capped resistances and chaos resistance'
+      'Character at level 80.',
+      'Gear set for your build worth 15-20 Divine Orbs.',
+      'Full campaign, permanent side quest bonuses, and 50+ Atlas Points unlocked.',
+      '8 Ascendancy Points unlocked.',
+      '300x Exalted Orbs.',
+      '100x Chaos Orbs.',
+      'All Gems for the build set up at Level 20 with 20% Quality.',
+      'All Currency and Items found during the leveling and mapping process.',
+      '5x Waystones of each tier — lvl 6, 8, and 10.',
+      'Basic mapping and early boss capability guaranteed.'
     ]
   },
   'poe2_build_endgame': {
     id: 'poe2_build_endgame',
     name: 'Endgame Build',
-    price: 85,
+    price: 370,
     nextUpgrade: null,
     upgradePrice: 0,
     description: 'Complete end-game ready build for pinnacle content',
     tier: 'endgame',
     requiresLevel: 70,
+    bannerImage: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80',
     features: [
-      'Optimized for T15+ maps',
-      'Pinnacle boss killing capability',
-      'Full endgame gear with trade links',
-      'Atlas passive tree optimization',
-      'Max quality gems with corrupted options',
-      'Overcapped resistances',
-      'Jewel optimization'
+      'Character at level 90.',
+      'Premium Gear set for your build worth 50+ Divine Orbs.',
+      'Full campaign, permanent side quest bonuses, and 100+ Atlas Points unlocked.',
+      '8 Ascendancy Points unlocked.',
+      '500x Exalted Orbs.',
+      '20x Raw Divine Orbs included for extra spending.',
+      'Endgame Gem setup (Max Level/Quality, including optimal Corrupted/Awakened variants).',
+      'All Currency and Items found during the progression process.',
+      '5x Waystones of max tier (lvl 14+).',
+      'Pinnacle Boss killing capability guaranteed.'
     ]
   }
 };
@@ -240,25 +253,33 @@ export const BUILD_DESCRIPTIONS = {
   },
   'poe2_starter_pack': {
     name: 'Bundle Starter (PoE 2)',
-    description: 'Complete starter bundle: Leveling 1-70 + Starter Build + Extras',
+    description: 'Complete starter bundle: Leveling 1-60 + Starter Build + Extras',
     features: [
-      'Leveling 1-70',
-      'Starter Build Setup',
-      '8 Ascendancy Points',
-      'All Passive Points',
-      'Basic Atlas Progression'
+      'Starter character at level 60.',
+      'Gear set for your build worth 5 Divine Orbs.',
+      'Full campaign and permanent bonuses from the side quests.',
+      '8 Ascendancy Points unlocked.',
+      '100x Exalted Orbs.',
+      '50x Orbs of Alchemy.',
+      'All Gems for the build are set up.',
+      'All the Currency and Items found during the leveling process.',
+      '5x Waystones of each tier — lvl 1, 3, and 5.'
     ]
   },
   'poe2_endgame_pack': {
     name: 'Bundle Endgame (PoE 2)',
     description: 'Ultimate endgame bundle: Leveling 1-90 + Endgame Build + Atlas + Bosses',
     features: [
-      'Leveling 1-90',
-      'Endgame Build Setup',
-      '8 Ascendancy Points',
-      'All Passive Points',
-      '30+ Atlas Points',
-      'Pinnacle Bosses Completed'
+      'Character at level 90.',
+      'Premium Gear set for your build worth 50+ Divine Orbs.',
+      'Full campaign, permanent side quest bonuses, and 100+ Atlas Points unlocked.',
+      '8 Ascendancy Points unlocked.',
+      '500x Exalted Orbs.',
+      '20x Raw Divine Orbs included for extra spending.',
+      'Endgame Gem setup (Max Level/Quality, including optimal Corrupted/Awakened variants).',
+      'All Currency and Items found during the progression process.',
+      '5x Waystones of max tier (lvl 14+).',
+      'Pinnacle Boss killing capability guaranteed.'
     ]
   },
   'custom_build': {
@@ -312,6 +333,47 @@ export const BUILD_DESCRIPTIONS = {
       'Summoning materials available'
     ]
   }
+};
+
+// CONFIGURACIÓN CENTRALIZADA DE CUSTOM BUILD (PoE / PoE 2)
+export const CUSTOM_BUILD_CONFIG = {
+  basePrices: {
+    'Early-game': 142.5,
+    'Mid-game': 285,
+    'End-game': 380,
+    'Uber': 760
+  },
+  // La opción de Leveling 1-70/80/90 queda SOLO como adicional para Custom Build
+  levelingOptions: [
+    { id: 'none', label: 'Do not include Leveling (Gear/Build only)', price: 0 },
+    { id: 'lvl_70', label: 'Leveling to 70', price: 60 },
+    { id: 'lvl_80', label: 'Leveling to 80', price: 70 },
+    { id: 'lvl_90', label: 'Leveling to 90', price: 120 }
+  ],
+  divineOrbPriceUnit: 0.65,
+  divineOrbOptions: [
+    { count: 0 },
+    { count: 5 },
+    { count: 10 },
+    { count: 20 },
+    { count: 30 },
+    { count: 40 },
+    { count: 50 },
+    { count: 60 },
+    { count: 70 },
+    { count: 80 },
+    { count: 90 },
+    { count: 100 },
+    { count: 120 },
+    { count: 150 },
+    { count: 200 },
+    { count: 300 },
+    { count: 400 },
+    { count: 500 }
+  ],
+  addons: [
+    { id: 'ascendancy_all', name: 'Get All 8 Ascendancy Points', price: 9.5 }
+  ]
 };
 
 export const formatPrice = (price) => {

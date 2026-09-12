@@ -2,7 +2,7 @@
 export const setupAdminSyncSocket = (socket) => {
   console.log(`🔄 Configurando adminSync para admin: ${socket.username}`);
 
-  // Verificar que sea admin (ya se verifica en server.js, pero por seguridad)
+  // Verificar que sea admin
   if (socket.userRole !== 'admin') {
     console.log(`❌ Intento de acceso no autorizado a adminSync: ${socket.username}`);
     socket.emit('sync_error', { message: 'Acceso denegado. Solo administradores.' });
@@ -67,7 +67,6 @@ export const setupAdminSyncSocket = (socket) => {
   socket.on('request_dashboard_refresh', (data) => {
     console.log(`🔄 Admin ${socket.username} solicitó actualización del dashboard`);
     
-    // Emitir evento de actualización a todos los admins suscritos
     socket.to('dashboard_updates').emit('dashboard_refresh', {
       type: 'manual_refresh',
       requestedBy: socket.username,
@@ -84,18 +83,15 @@ export const setupAdminSyncSocket = (socket) => {
 
   // ========== EVENTOS DE SISTEMA (EMITIDOS DESDE EL BACKEND) ==========
   
-  // Orden actualizada (desde cualquier parte del sistema)
   socket.on('system_order_updated', (data) => {
     console.log(`📦 Sistema notifica orden actualizada: ${data.orderId}`);
     
-    // Emitir a todos los admins
     socket.to('admin_room').emit('order_updated', {
       ...data,
       source: 'system',
       timestamp: new Date()
     });
     
-    // Emitir a la sala de dashboard
     socket.to('dashboard_updates').emit('dashboard_refresh', {
       type: 'order_update',
       orderId: data.orderId,
@@ -105,18 +101,15 @@ export const setupAdminSyncSocket = (socket) => {
     });
   });
 
-  // Nueva orden creada (desde cualquier parte del sistema)
   socket.on('system_order_created', (data) => {
     console.log(`🆕 Sistema notifica nueva orden: ${data.orderId}`);
     
-    // Emitir a todos los admins
     socket.to('admin_room').emit('order_created', {
       ...data,
       source: 'system',
       timestamp: new Date()
     });
     
-    // Emitir a la sala de dashboard
     socket.to('dashboard_updates').emit('dashboard_refresh', {
       type: 'new_order',
       orderId: data.orderId,
@@ -125,24 +118,20 @@ export const setupAdminSyncSocket = (socket) => {
     });
   });
 
-  // Servicio actualizado (desde cualquier parte del sistema)
   socket.on('system_service_updated', (data) => {
     console.log(`🎮 Sistema notifica servicio actualizado: ${data.serviceId || data.name}`);
     
-    // Emitir a todos los admins
     socket.to('admin_room').emit('service_modified', {
       ...data,
       source: 'system',
       timestamp: new Date()
     });
     
-    // Emitir a la sala de servicios
     socket.to('services_updates').emit('service_updated', {
       ...data,
       timestamp: new Date()
     });
     
-    // Actualizar dashboard
     socket.to('dashboard_updates').emit('dashboard_refresh', {
       type: 'service_update',
       serviceId: data.serviceId,
@@ -151,11 +140,9 @@ export const setupAdminSyncSocket = (socket) => {
     });
   });
 
-  // Usuario registrado/actualizado (desde cualquier parte del sistema)
   socket.on('system_user_updated', (data) => {
     console.log(`👤 Sistema notifica usuario actualizado: ${data.userId || data.username}`);
     
-    // Emitir a todos los admins
     socket.to('admin_room').emit('user_modified', {
       ...data,
       source: 'system',
@@ -165,12 +152,10 @@ export const setupAdminSyncSocket = (socket) => {
 
   // ========== EVENTOS MANUALES (EMITIDOS DESDE FRONTEND ADMIN) ==========
   
-  // Admin actualiza manualmente una orden
   socket.on('admin_update_order', (data) => {
     const { orderId, updates } = data;
     console.log(`👑 Admin ${socket.username} actualiza orden: ${orderId}`);
     
-    // Emitir a todos los admins
     socket.to('admin_room').emit('order_updated_by_admin', {
       orderId,
       updates,
@@ -179,7 +164,6 @@ export const setupAdminSyncSocket = (socket) => {
       timestamp: new Date()
     });
     
-    // Actualizar dashboard
     socket.to('dashboard_updates').emit('dashboard_refresh', {
       type: 'admin_order_update',
       orderId,
@@ -187,7 +171,6 @@ export const setupAdminSyncSocket = (socket) => {
       message: `Orden ${orderId} actualizada por admin`
     });
     
-    // Confirmar al admin que lo envió
     socket.emit('admin_update_confirmed', {
       success: true,
       orderId,
@@ -208,9 +191,8 @@ export const setupAdminSyncSocket = (socket) => {
   });
 };
 
-// ✅ FUNCIONES GLOBALES PARA EMITIR DESDE CUALQUIER PARTE DEL BACKEND
+// FUNCIONES GLOBALES PARA EMITIR DESDE CUALQUIER PARTE DEL BACKEND
 export const adminSyncHelpers = (io) => ({
-  // Emitir actualización de orden desde cualquier parte del sistema
   emitOrderUpdate: (orderData) => {
     io.to('admin_room').emit('order_updated', {
       ...orderData,
@@ -230,7 +212,6 @@ export const adminSyncHelpers = (io) => ({
     console.log(`📊 Orden ${orderData.orderId} sincronizada con admins`);
   },
 
-  // Emitir nueva orden desde cualquier parte del sistema
   emitNewOrder: (orderData) => {
     io.to('admin_room').emit('order_created', {
       ...orderData,
@@ -249,7 +230,6 @@ export const adminSyncHelpers = (io) => ({
     console.log(`📊 Nueva orden ${orderData.orderId} sincronizada con admins`);
   },
 
-  // Emitir actualización de servicio desde cualquier parte del sistema
   emitServiceUpdate: (serviceData) => {
     io.to('admin_room').emit('service_modified', {
       ...serviceData,
@@ -273,7 +253,6 @@ export const adminSyncHelpers = (io) => ({
     console.log(`📊 Servicio ${serviceData.serviceId || serviceData.name} sincronizado con admins`);
   },
 
-  // Emitir actualización de usuario desde cualquier parte del sistema
   emitUserUpdate: (userData) => {
     io.to('admin_room').emit('user_modified', {
       ...userData,
@@ -284,7 +263,6 @@ export const adminSyncHelpers = (io) => ({
     console.log(`📊 Usuario ${userData.userId || userData.username} sincronizado con admins`);
   },
 
-  // Emitir actualización de dashboard desde cualquier parte del sistema
   emitDashboardRefresh: (data) => {
     io.to('dashboard_updates').emit('dashboard_refresh', {
       ...data,
@@ -295,7 +273,6 @@ export const adminSyncHelpers = (io) => ({
     console.log(`📊 Dashboard actualizado desde backend`);
   },
 
-  // Emitir a todos los admins
   emitToAdmins: (event, data) => {
     io.to('admin_room').emit(event, {
       ...data,

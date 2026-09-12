@@ -1,4 +1,5 @@
 // frontend/src/utils/pricingCalculator.js - VERSIÓN COMPLETA CON DUNE AWAKENING Y BOSS KILLING D4
+import { CUSTOM_BUILD_CONFIG } from '../config/buildsConfig';
 
 const MAX_LEVELS = {
   'Diablo 4': { 'leveling': 60, 'powerleveling': 60, 'paragon_leveling': 300, 'default': 100 },
@@ -43,6 +44,9 @@ const DUNE_LEVELING_TIERS = [
   { min: 101, max: 150, pricePerLevel: 1.80 },
   { min: 151, max: 200, pricePerLevel: 3.00 }
 ];
+
+// Custom Build PoE2: los valores viven en CUSTOM_BUILD_CONFIG (config/buildsConfig.js),
+// que a su vez se sincroniza con el backend vía config/pricingSync.js — no duplicar acá.
 
 const BASE_PRICES = {
   // PoE 2
@@ -271,6 +275,43 @@ const calculatePoE2LevelingPrice = (serviceType) => {
   return { totalPrice: price, breakdown: [{ item: names[serviceType] || formatServiceName(serviceType), amount: price }] };
 };
 
+const calculateCustomBuildPrice = (serviceDetails, options = {}) => {
+  const categories = CUSTOM_BUILD_CONFIG.basePrices;
+  const category = categories[options.category] !== undefined ? options.category : 'Early-game';
+  const basePrice = categories[category];
+
+  const levelingOpt = CUSTOM_BUILD_CONFIG.levelingOptions.find(o => o.id === options.levelingOptionId)
+    || CUSTOM_BUILD_CONFIG.levelingOptions.find(o => o.id === 'none');
+  const levelingPrice = levelingOpt?.price || 0;
+
+  const divineOrbCount = Math.max(0, Number(options.divineOrbCount) || 0);
+  const divineOrbPrice = divineOrbCount * CUSTOM_BUILD_CONFIG.divineOrbPriceUnit;
+
+  const selectedAddonIds = Array.isArray(options.selectedAddonIds) ? options.selectedAddonIds : [];
+  let addonsPrice = 0;
+  const addonsBreakdown = [];
+  selectedAddonIds.forEach((id) => {
+    const addon = CUSTOM_BUILD_CONFIG.addons.find(a => a.id === id);
+    if (addon) {
+      addonsPrice += addon.price;
+      addonsBreakdown.push({ item: addon.name, amount: addon.price });
+    }
+  });
+
+  const totalPrice = basePrice + levelingPrice + divineOrbPrice + addonsPrice;
+
+  const breakdown = [{ item: `Custom Build - ${category}`, amount: basePrice }];
+  if (levelingPrice > 0) {
+    breakdown.push({ item: levelingOpt.label, amount: levelingPrice });
+  }
+  if (divineOrbCount > 0) {
+    breakdown.push({ item: `${divineOrbCount} Divine Orbs (×$${CUSTOM_BUILD_CONFIG.divineOrbPriceUnit.toFixed(2)})`, amount: divineOrbPrice });
+  }
+  breakdown.push(...addonsBreakdown);
+
+  return { totalPrice, breakdown };
+};
+
 const calculateBossKillingPriceD4 = (serviceDetails, options = {}) => {
   const selectedBoss = options.selectedBoss || 'andariel';
   const runs = Number(serviceDetails.quantity) || 50;
@@ -351,6 +392,10 @@ const calculatePrice = (serviceType, serviceDetails, game, options = {}) => {
 
   if (serviceType.startsWith('poe2_leveling_')) {
     return calculatePoE2LevelingPrice(serviceType).totalPrice;
+  }
+
+  if (serviceType === 'poe2_custom_build') {
+    return calculateCustomBuildPrice(serviceDetails, options).totalPrice;
   }
 
   if (isLevelingService(serviceType)) {
@@ -499,6 +544,11 @@ const getPriceBreakdown = (serviceType, serviceDetails, game, options = {}) => {
     return [...result.breakdown, { item: 'TOTAL', amount: result.totalPrice, isTotal: true }];
   }
 
+  if (serviceType === 'poe2_custom_build') {
+    const result = calculateCustomBuildPrice(serviceDetails, options);
+    return [...result.breakdown, { item: 'TOTAL', amount: result.totalPrice, isTotal: true }];
+  }
+
   if (isLevelingService(serviceType)) {
     const result = calculateSimpleLevelingPrice(game, serviceType, currentLevel, desiredLevel, basePrice);
     const breakdown = [...result.breakdown];
@@ -578,6 +628,7 @@ const pricingCalculator = {
   isLevelingService,
   supportsQuantity,
   formatServiceName,
+  calculateCustomBuildPrice,
   BASE_PRICES,
   PARAGON_TIERS_D4,
   PARAGON_TIERS_D3,

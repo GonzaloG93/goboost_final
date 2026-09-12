@@ -8,9 +8,7 @@ const userSchema = new mongoose.Schema({
     unique: true
   },
   name: {
-    type: String,
-    required: true,
-    trim: true
+    type: String // Añadido para dar soporte al registro normal
   },
   email: {
     type: String,
@@ -57,6 +55,7 @@ userSchema.pre('save', async function(next) {
   next();
 });
 
+// ✅ CORREGIDO - sin parámetro extra
 userSchema.methods.correctPassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };

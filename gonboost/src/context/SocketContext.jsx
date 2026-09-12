@@ -1,4 +1,4 @@
-// frontend/src/context/SocketContext.jsx - URL HARCODEADA PARA RENDER
+// frontend/src/context/SocketContext.jsx - VERSIÓN ESTABLE Y RESISTENTE A NAVEGACIÓN
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
@@ -22,315 +22,207 @@ export const SocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  
   const { user, token } = useAuth();
+  
   const socketRef = useRef(null);
-  const mountedRef = useRef(true);
-  const connectionAttemptsRef = useRef(0);
-  const maxRetries = 3;
+  const activeTokenRef = useRef(null);
+
+  // Limpia y extrae el token
+  const rawToken = token || localStorage.getItem('token') || '';
+  const cleanToken = rawToken.replace(/^Bearer\s+/, '').trim();
+
+  const disconnectSocket = useCallback(() => {
+    if (socketRef.current) {
+      devLog('🧹 Desconectando socket actual...');
+      socketRef.current.removeAllListeners();
+      socketRef.current.disconnect();
+      socketRef.current = null;
+      activeTokenRef.current = null;
+      setIsConnected(false);
+    }
+  }, []);
 
   const initializeSocket = useCallback(() => {
-    if (!mountedRef.current) return;
-    
-    if (!user || !token) {
-      devLog('⏸️ Socket: No hay usuario o token, omitiendo conexión');
+    // Si no hay usuario o token, limpiar
+    if (!user || !cleanToken) {
+      if (socketRef.current) disconnectSocket();
       setIsInitialized(true);
       return;
     }
 
-    if (socketRef.current?.connected) {
-      devLog('✅ Socket ya conectado, omitiendo inicialización');
+    // Si ya está conectado con el MISMO token, no volver a conectar
+    if (socketRef.current?.connected && activeTokenRef.current === cleanToken) {
       return;
     }
 
+    // Si había un socket previo con token distinto, limpiarlo
     if (socketRef.current) {
-      socketRef.current.removeAllListeners();
-      socketRef.current.disconnect();
-      socketRef.current = null;
+      disconnectSocket();
     }
 
-    const connectionDelay = connectionAttemptsRef.current > 0 ? 1000 : 0;
-    
-    const connectTimer = setTimeout(() => {
-      if (!mountedRef.current) return;
-      
-      // ✅ URL HARCODEADA DIRECTAMENTE AL BACKEND DE RENDER
-      const socketUrl = 'https://gonboost-api.onrender.com';
-      
-      devLog('🔌 Inicializando conexión socket a:', socketUrl);
+    devLog('🔌 Inicializando conexión socket...');
+    activeTokenRef.current = cleanToken;
 
-      const socket = io(socketUrl, {
-        auth: { 
-          token: token
-        },
-        transports: ['polling', 'websocket'],
-        autoConnect: true,
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        timeout: 20000,
-        forceNew: connectionAttemptsRef.current >= maxRetries
+    const rawUrl = import.meta.env.VITE_API_URL || 'https://api.gonboost.com';
+    const socketUrl = rawUrl.replace(/\/api\/?$/, ''); 
+
+    const socket = io(socketUrl, {
+      auth: { token: cleanToken },
+      extraHeaders: { Authorization: `Bearer ${cleanToken}` },
+      transports: ['websocket', 'polling'], // Fallback automático para evitar 'WebSocket is closed' abruptos
+      path: '/socket.io/',
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
+    });
+
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      devLog('✅ Socket conectado:', socket.id);
+      setIsConnected(true);
+      setConnectionError(null);
+      setIsInitialized(true);
+
+      socket.emit('authenticate', {
+        userId: user._id,
+        username: user.username,
+        role: user.role
       });
 
-      socketRef.current = socket;
+      socket.emit('join_user_tickets');
+    });
 
-      socket.on('connect', () => {
-        if (!mountedRef.current) return;
-        devLog('✅ Socket conectado:', socket.id);
-        setIsConnected(true);
-        setConnectionError(null);
-        setIsInitialized(true);
-        connectionAttemptsRef.current = 0;
-
-        socket.emit('authenticate', {
-          userId: user._id,
-          username: user.username,
-          role: user.role
-        });
-
-        setTimeout(() => {
-          if (socket.connected) {
-            socket.emit('join_user_tickets');
-          }
-        }, 100);
-      });
-
-      socket.on('connected', (data) => {
-        if (!mountedRef.current) return;
-        devLog('🔐 Confirmación de conexión:', data);
-      });
-
-      socket.on('authenticated', (data) => {
-        if (!mountedRef.current) return;
-        devLog('🔐 Socket autenticado:', data);
-      });
-
-      socket.on('tickets_subscribed', (data) => {
-        if (!mountedRef.current) return;
-        devLog('🎫 Suscrito a tickets del usuario:', data);
-      });
-
-      socket.on('disconnect', (reason) => {
-        if (!mountedRef.current) return;
-        devLog('🔌 Socket desconectado:', reason);
-        setIsConnected(false);
-        
-        if (reason === 'io client disconnect') {
-          return;
-        }
-      });
-
-      socket.on('connect_error', (error) => {
-        if (!mountedRef.current) return;
-        console.error('❌ Error de conexión socket:', {
-          message: error.message,
-          description: error.description,
-          type: error.type
-        });
-        
-        setConnectionError(`Error: ${error.message}`);
-        setIsConnected(false);
-        setIsInitialized(true);
-        connectionAttemptsRef.current++;
-        
-        if (connectionAttemptsRef.current >= maxRetries) {
-          devLog('❌ Máximo de intentos alcanzado');
-          setTimeout(() => {
-            connectionAttemptsRef.current = 0;
-          }, 30000);
-        }
-      });
-
-      socket.on('error', (error) => {
-        if (!mountedRef.current) return;
-        console.error('❌ Socket error:', error);
-      });
-
-    }, connectionDelay);
-
-    return () => {
-      clearTimeout(connectTimer);
-    };
-  }, [user, token]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    
-    const initTimer = setTimeout(() => {
-      if (mountedRef.current) {
-        initializeSocket();
-      }
-    }, 500);
-
-    return () => {
-      mountedRef.current = false;
-      clearTimeout(initTimer);
-      
-      if (socketRef.current) {
-        devLog('🧹 Limpiando conexión socket en unmount');
-        socketRef.current.removeAllListeners();
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
+    socket.on('connect_error', (error) => {
+      console.error('❌ Error de conexión socket:', error.message);
+      setConnectionError(`Error: ${error.message}`);
       setIsConnected(false);
-    };
-  }, [initializeSocket]);
+      setIsInitialized(true);
+    });
 
+    socket.on('disconnect', (reason) => {
+      devLog('🔌 Socket desconectado:', reason);
+      setIsConnected(false);
+    });
+
+  }, [user, cleanToken, disconnectSocket]);
+
+  // UN SOLO useEffect para manejar el ciclo de vida del Socket
   useEffect(() => {
-    if (user && token) {
-      const reconnectTimer = setTimeout(() => {
-        if (mountedRef.current && !socketRef.current?.connected) {
-          initializeSocket();
-        }
-      }, 500);
-      
-      return () => clearTimeout(reconnectTimer);
-    }
-  }, [user?._id, token]);
+    initializeSocket();
+
+    return () => {
+      if (socketRef.current) {
+        disconnectSocket();
+      }
+    };
+  }, [initializeSocket, disconnectSocket]);
 
   // FUNCIONES PARA TICKETS
   const joinUserTickets = useCallback(() => {
-    if (socketRef.current?.connected && mountedRef.current) {
+    if (socketRef.current?.connected) {
       socketRef.current.emit('join_user_tickets');
-      devLog('✅ Unido a tickets del usuario');
     }
   }, []);
 
   const joinAdminTickets = useCallback(() => {
-    if (socketRef.current?.connected && user?.role === 'admin' && mountedRef.current) {
+    if (socketRef.current?.connected && user?.role === 'admin') {
       socketRef.current.emit('join_admin_tickets');
-      devLog('✅ Admin unido a sala de tickets');
     }
   }, [user]);
 
   const joinTicketRoom = useCallback((ticketId) => {
-    if (socketRef.current?.connected && mountedRef.current) {
+    if (socketRef.current?.connected) {
       socketRef.current.emit('join_ticket', ticketId);
-      devLog(`🎫 Unido a sala de ticket: ${ticketId}`);
     }
   }, []);
 
   const leaveTicketRoom = useCallback((ticketId) => {
-    if (socketRef.current?.connected && mountedRef.current) {
+    if (socketRef.current?.connected) {
       socketRef.current.emit('leave_ticket', ticketId);
-      devLog(`🎫 Salió de sala de ticket: ${ticketId}`);
     }
   }, []);
 
   const sendTicketReply = useCallback((ticketId, message) => {
-    if (socketRef.current?.connected && user && mountedRef.current) {
+    if (socketRef.current?.connected && user) {
       socketRef.current.emit('customer_ticket_reply', {
         ticketId,
         message: message.trim(),
         customerId: user._id
       });
-      devLog(`📤 Enviando respuesta a ticket ${ticketId}`);
     }
   }, [user]);
 
   const sendTicketCreated = useCallback((ticketData) => {
-    if (socketRef.current?.connected && user && mountedRef.current) {
+    if (socketRef.current?.connected && user) {
       socketRef.current.emit('customer_ticket_created', {
         ticket: ticketData,
         userId: user._id,
         customerName: user.username,
         timestamp: new Date()
       });
-      devLog('🎫 Notificando creación de ticket via socket');
     }
   }, [user]);
 
   const startTypingInTicket = useCallback((ticketId) => {
-    if (socketRef.current?.connected && user && mountedRef.current) {
-      socketRef.current.emit('customer_typing', {
-        ticketId,
-        isTyping: true
-      });
-      devLog(`✍️ Typing en ticket ${ticketId}`);
+    if (socketRef.current?.connected && user) {
+      socketRef.current.emit('customer_typing', { ticketId, isTyping: true });
     }
   }, [user]);
 
   const stopTypingInTicket = useCallback((ticketId) => {
-    if (socketRef.current?.connected && user && mountedRef.current) {
-      socketRef.current.emit('customer_typing', {
-        ticketId,
-        isTyping: false
-      });
-      devLog(`⏹️ Stopped typing en ticket ${ticketId}`);
+    if (socketRef.current?.connected && user) {
+      socketRef.current.emit('customer_typing', { ticketId, isTyping: false });
     }
   }, [user]);
 
-  // EVENT LISTENERS
+  // LISTENERS
   const onTicketCreated = useCallback((callback) => {
-    if (socketRef.current) {
-      socketRef.current.on('ticket_created', callback);
-      return () => socketRef.current?.off('ticket_created', callback);
-    }
-    return () => {};
+    socketRef.current?.on('ticket_created', callback);
+    return () => socketRef.current?.off('ticket_created', callback);
   }, []);
 
   const onAdminReplied = useCallback((callback) => {
-    if (socketRef.current) {
-      socketRef.current.on('admin_replied', callback);
-      return () => socketRef.current?.off('admin_replied', callback);
-    }
-    return () => {};
+    socketRef.current?.on('admin_replied', callback);
+    return () => socketRef.current?.off('admin_replied', callback);
   }, []);
 
   const onTicketUpdated = useCallback((callback) => {
-    if (socketRef.current) {
-      socketRef.current.on('ticket_updated', callback);
-      return () => socketRef.current?.off('ticket_updated', callback);
-    }
-    return () => {};
+    socketRef.current?.on('ticket_updated', callback);
+    return () => socketRef.current?.off('ticket_updated', callback);
   }, []);
 
   const onTicketMessageAdded = useCallback((callback) => {
-    if (socketRef.current) {
-      socketRef.current.on('ticket_message_added', callback);
-      return () => socketRef.current?.off('ticket_message_added', callback);
-    }
-    return () => {};
+    socketRef.current?.on('ticket_message_added', callback);
+    return () => socketRef.current?.off('ticket_message_added', callback);
   }, []);
 
   const onTicketStatusUpdated = useCallback((callback) => {
-    if (socketRef.current) {
-      socketRef.current.on('ticket_status_updated', callback);
-      return () => socketRef.current?.off('ticket_status_updated', callback);
-    }
-    return () => {};
+    socketRef.current?.on('ticket_status_updated', callback);
+    return () => socketRef.current?.off('ticket_status_updated', callback);
   }, []);
 
-  // FUNCIONES PARA ÓRDENES
+  // ÓRDENES
   const subscribeOrders = useCallback(() => {
-    if (socketRef.current?.connected && user && mountedRef.current) {
+    if (socketRef.current?.connected && user) {
       socketRef.current.emit('join_user_orders', user._id);
-      devLog('📦 Suscrito a órdenes del usuario');
     }
   }, [user]);
 
   const onOrderCreated = useCallback((callback) => {
-    if (socketRef.current) {
-      socketRef.current.on('order_created', callback);
-      return () => socketRef.current?.off('order_created', callback);
-    }
-    return () => {};
+    socketRef.current?.on('order_created', callback);
+    return () => socketRef.current?.off('order_created', callback);
   }, []);
 
   const onOrderUpdated = useCallback((callback) => {
-    if (socketRef.current) {
-      socketRef.current.on('order_updated', callback);
-      return () => socketRef.current?.off('order_updated', callback);
-    }
-    return () => {};
+    socketRef.current?.on('order_updated', callback);
+    return () => socketRef.current?.off('order_updated', callback);
   }, []);
 
   const onOrderCreatedConfirmation = useCallback((callback) => {
-    if (socketRef.current) {
-      socketRef.current.on('order_created_confirmation', callback);
-      return () => socketRef.current?.off('order_created_confirmation', callback);
-    }
-    return () => {};
+    socketRef.current?.on('order_created_confirmation', callback);
+    return () => socketRef.current?.off('order_created_confirmation', callback);
   }, []);
 
   const value = {
@@ -340,13 +232,10 @@ export const SocketProvider = ({ children }) => {
     socket: socketRef.current,
     
     reconnect: () => {
-      if (mountedRef.current) {
-        connectionAttemptsRef.current = 0;
-        initializeSocket();
-      }
+      activeTokenRef.current = null;
+      initializeSocket();
     },
     
-    // Tickets
     joinUserTickets,
     joinAdminTickets,
     joinTicketRoom,
@@ -356,42 +245,32 @@ export const SocketProvider = ({ children }) => {
     startTypingInTicket,
     stopTypingInTicket,
     
-    // Event Listeners
     onTicketCreated,
     onAdminReplied,
     onTicketUpdated,
     onTicketMessageAdded,
     onTicketStatusUpdated,
     
-    // Órdenes
     subscribeOrders,
     onOrderCreated,
     onOrderUpdated,
     onOrderCreatedConfirmation,
     
-    // Compatibilidad
     joinOrder: useCallback((orderId) => {
-      if (socketRef.current?.connected && mountedRef.current) {
+      if (socketRef.current?.connected) {
         socketRef.current.emit('join_order', orderId);
       }
     }, []),
     
     sendMessage: useCallback((orderId, message, sender) => {
-      if (socketRef.current?.connected && mountedRef.current) {
-        socketRef.current.emit('send_message', {
-          orderId,
-          message,
-          sender
-        });
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('send_message', { orderId, message, sender });
       }
     }, []),
     
     updateOrderStatus: useCallback((orderId, newStatus) => {
-      if (socketRef.current?.connected && mountedRef.current) {
-        socketRef.current.emit('order_status_update', {
-          orderId,
-          newStatus
-        });
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('order_status_update', { orderId, newStatus });
       }
     }, [])
   };
@@ -402,3 +281,5 @@ export const SocketProvider = ({ children }) => {
     </SocketContext.Provider>
   );
 };
+
+export default SocketContext;
