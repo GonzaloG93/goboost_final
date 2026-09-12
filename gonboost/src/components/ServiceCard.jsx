@@ -1,14 +1,13 @@
-// ServiceCard v3 - fix routing and reviews
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from '../i18n';
 import { generateServiceSlug } from '../utils/urlHelpers';
 import { FaClock, FaStar, FaEye, FaShoppingCart, FaCheck, FaGamepad } from 'react-icons/fa';
+// Importamos tu configuración real de axios
+import axios from '../utils/axiosConfig';
 
 const ServiceCard = ({ service, onOrderNow }) => {
-  // Confiamos ciegamente en el ID porque ya vimos en Network que el backend lo manda como _id
   const serviceId = service._id || service.id;
   
   const { i18n } = useTranslation();
@@ -18,19 +17,20 @@ const ServiceCard = ({ service, onOrderNow }) => {
   const serviceSlug = serviceId ? generateServiceSlug(service) : '#';
   const price = service.basePrice || service.price || 0;
   
-  // Estado para las reseñas reales
   const [reviewStats, setReviewStats] = useState({ rating: 0, count: 0, loaded: false });
 
   useEffect(() => {
     const fetchReviewStats = async () => {
-      if (!serviceId) return;
+      // Evitamos peticiones a "undefined"
+      if (!serviceId || serviceId === 'undefined') return; 
+      
       try {
-        const response = await fetch(`/api/reviews/service/${serviceId}/stats`);
-        if (response.ok) {
-          const data = await response.json();
+        // Usamos axios para apuntar a tu backend real
+        const response = await axios.get(`/reviews/service/${serviceId}/stats`);
+        if (response.data) {
           setReviewStats({
-            rating: data.averageRating || 0,
-            count: data.totalReviews || 0,
+            rating: response.data.averageRating || 0,
+            count: response.data.totalReviews || 0,
             loaded: true
           });
         }
@@ -57,20 +57,6 @@ const ServiceCard = ({ service, onOrderNow }) => {
     return colors[game] || 'from-blue-600 to-indigo-600';
   };
 
-  const getGameIcon = (game) => {
-    const icons = {
-      'Diablo 4': '😈',
-      'Diablo 3': '👹',
-      'Diablo 2 Resurrected': '💀',
-      'World of Warcraft Retail': '🐉',
-      'World of Warcraft Classic': '⚔️',
-      'Path of Exile': '🍂',
-      'Path of Exile 2': '🌑',
-      'Last Epoch': '⏳',
-    };
-    return icons[game] || '🎮';
-  };
-
   return (
     <div className="group relative bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 rounded-2xl overflow-hidden border border-gray-700 hover:border-cyan-400 transition-all duration-500 hover:shadow-2xl hover:shadow-cyan-500/20 hover:-translate-y-2">
       
@@ -84,7 +70,6 @@ const ServiceCard = ({ service, onOrderNow }) => {
             {service.game}
           </span>
           
-          {/* Solo mostramos estrellas si hay reseñas reales */}
           {reviewStats.count > 0 && (
             <div className="flex items-center gap-1">
               <div className="flex items-center">
@@ -103,6 +88,13 @@ const ServiceCard = ({ service, onOrderNow }) => {
         <h3 className="text-xl font-bold text-white mb-2 line-clamp-1 group-hover:text-cyan-300 transition-colors duration-300">
           {service.name}
         </h3>
+        
+        {/* TEXTO DE DIAGNÓSTICO TEMPORAL - BORRAR DESPUÉS */}
+        {!serviceId && (
+          <p className="text-red-400 text-xs mb-2 p-1 border border-red-500 rounded bg-red-900/30">
+            Keys: {Object.keys(service).join(', ')}
+          </p>
+        )}
         
         <p className="text-gray-400 text-sm mb-4 line-clamp-2 min-h-[40px]">
           {service.description || 'Professional boosting service'}
@@ -150,7 +142,6 @@ const ServiceCard = ({ service, onOrderNow }) => {
             <span className="text-sm">Details</span>
           </Link>
           
-          {/* Botón Order siempre activo, usando Link con estado */}
           <Link
              to={`${prefix}/order/${serviceId}`}
              state={{ service, fixedPrice: price }}
@@ -161,8 +152,6 @@ const ServiceCard = ({ service, onOrderNow }) => {
           </Link>
         </div>
       </div>
-      
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-blue-500/0 group-hover:from-cyan-500/5 group-hover:to-blue-500/5 rounded-2xl pointer-events-none transition-all duration-500"></div>
     </div>
   );
 };
