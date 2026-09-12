@@ -1,28 +1,47 @@
-// ServiceCard v2 - fix routing
+// ServiceCard v3 - fix routing and reviews
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from '../i18n';
 import { generateServiceSlug } from '../utils/urlHelpers';
 import { FaClock, FaStar, FaEye, FaShoppingCart, FaCheck, FaGamepad } from 'react-icons/fa';
 
-const ServiceCard = ({ service }) => {
-  // ✅ Obtener el ID del servicio de forma segura
- const serviceId = service["_id"]?.toString() || service["id"]?.toString();
+const ServiceCard = ({ service, onOrderNow }) => {
+  // Confiamos ciegamente en el ID porque ya vimos en Network que el backend lo manda como _id
+  const serviceId = service._id || service.id;
   
   const { i18n } = useTranslation();
   const currentLang = i18n.language;
   const prefix = currentLang === DEFAULT_LANGUAGE ? '' : `/${currentLang}`;
   
-  const serviceSlug = serviceId ? generateServiceSlug(service) : '#'; // Si no hay ID, no navegar
+  const serviceSlug = serviceId ? generateServiceSlug(service) : '#';
   const price = service.basePrice || service.price || 0;
   
-  // ✅ Calcular rating simulado
-  const rating = service.popularity ? Math.min(5, Math.ceil(service.popularity / 20)) : 4.5;
-  const reviewCount = service.popularity ? service.popularity * 10 : 1243;
+  // Estado para las reseñas reales
+  const [reviewStats, setReviewStats] = useState({ rating: 0, count: 0, loaded: false });
 
-  // ✅ Obtener color del juego
+  useEffect(() => {
+    const fetchReviewStats = async () => {
+      if (!serviceId) return;
+      try {
+        const response = await fetch(`/api/reviews/service/${serviceId}/stats`);
+        if (response.ok) {
+          const data = await response.json();
+          setReviewStats({
+            rating: data.averageRating || 0,
+            count: data.totalReviews || 0,
+            loaded: true
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching reviews for ServiceCard:', error);
+      }
+    };
+
+    fetchReviewStats();
+  }, [serviceId]);
+
   const getGameColor = (game) => {
     const colors = {
       'Diablo 4': 'from-red-600 to-orange-600',
@@ -38,7 +57,6 @@ const ServiceCard = ({ service }) => {
     return colors[game] || 'from-blue-600 to-indigo-600';
   };
 
-  // ✅ Obtener ícono del juego
   const getGameIcon = (game) => {
     const icons = {
       'Diablo 4': '😈',
@@ -53,51 +71,43 @@ const ServiceCard = ({ service }) => {
     return icons[game] || '🎮';
   };
 
-  // Log si falta el ID (solo en desarrollo)
-  if (!serviceId && import.meta.env.DEV) {
-    console.error('ServiceCard: service no tiene _id ni id', service);
-  }
-
   return (
     <div className="group relative bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 rounded-2xl overflow-hidden border border-gray-700 hover:border-cyan-400 transition-all duration-500 hover:shadow-2xl hover:shadow-cyan-500/20 hover:-translate-y-2">
       
-      {/* Header con gradiente del juego */}
       <div className={`h-2 bg-gradient-to-r ${getGameColor(service.game)}`}></div>
       
       <div className="p-5 md:p-6">
         
-        {/* Game Badge con ícono */}
         <div className="flex items-center justify-between mb-3">
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-700/50 backdrop-blur-sm text-cyan-300 rounded-full text-xs font-medium border border-gray-600">
             <FaGamepad className="text-cyan-400" />
             {service.game}
           </span>
           
-          {/* Rating */}
-          <div className="flex items-center gap-1">
-            <div className="flex items-center">
-              {[...Array(5)].map((_, i) => (
-                <FaStar 
-                  key={i} 
-                  className={`text-xs ${i < Math.floor(rating) ? 'text-yellow-400' : 'text-gray-600'}`} 
-                />
-              ))}
+          {/* Solo mostramos estrellas si hay reseñas reales */}
+          {reviewStats.count > 0 && (
+            <div className="flex items-center gap-1">
+              <div className="flex items-center">
+                {[...Array(5)].map((_, i) => (
+                  <FaStar 
+                    key={i} 
+                    className={`text-xs ${i < Math.floor(reviewStats.rating) ? 'text-yellow-400' : 'text-gray-600'}`} 
+                  />
+                ))}
+              </div>
+              <span className="text-gray-400 text-xs ml-1">({reviewStats.count})</span>
             </div>
-            <span className="text-gray-400 text-xs ml-1">({reviewCount})</span>
-          </div>
+          )}
         </div>
 
-        {/* Service Name */}
         <h3 className="text-xl font-bold text-white mb-2 line-clamp-1 group-hover:text-cyan-300 transition-colors duration-300">
           {service.name}
         </h3>
         
-        {/* Description */}
         <p className="text-gray-400 text-sm mb-4 line-clamp-2 min-h-[40px]">
           {service.description || 'Professional boosting service'}
         </p>
 
-        {/* Features Preview */}
         {service.features && service.features.length > 0 && (
           <div className="mb-4 space-y-1.5">
             {service.features.slice(0, 2).map((feature, index) => (
@@ -112,7 +122,6 @@ const ServiceCard = ({ service }) => {
           </div>
         )}
 
-        {/* Price & Time */}
         <div className="flex items-end justify-between mb-5 pt-2 border-t border-gray-700">
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Starting at</p>
@@ -132,36 +141,20 @@ const ServiceCard = ({ service }) => {
           )}
         </div>
 
-        {/* Action Buttons - PROTEGIDOS CONTRA ID FALTANTE */}
         <div className="flex gap-2">
           <Link
-            to={serviceId ? `${prefix}/service/${serviceSlug}` : '#'}
+            to={`${prefix}/service/${serviceSlug}`}
             className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2.5 px-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 group/view border border-gray-600 hover:border-cyan-400"
-            onClick={(e) => {
-              if (!serviceId) {
-                e.preventDefault();
-                console.error('ServiceCard Details - faltante _id', service);
-              }
-            }}
           >
             <FaEye className="text-gray-400 group-hover/view:text-cyan-300 transition-colors" />
             <span className="text-sm">Details</span>
           </Link>
           
+          {/* Botón Order siempre activo, usando Link con estado */}
           <Link
-            to={serviceId ? `${prefix}/order/${serviceId}` : '#'}
-            state={serviceId ? { service, fixedPrice: price } : undefined}
-            className={`flex-1 py-2.5 px-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 shadow-lg ${
-              serviceId 
-                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white hover:shadow-cyan-500/30'
-                : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
-            }`}
-            onClick={(e) => {
-              if (!serviceId) {
-                e.preventDefault();
-                console.error('ServiceCard Order - faltante _id', service);
-              }
-            }}
+             to={`${prefix}/order/${serviceId}`}
+             state={{ service, fixedPrice: price }}
+             className="flex-1 py-2.5 px-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 shadow-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white hover:shadow-cyan-500/30"
           >
             <FaShoppingCart className="text-sm" />
             <span className="text-sm">Order</span>
@@ -169,7 +162,6 @@ const ServiceCard = ({ service }) => {
         </div>
       </div>
       
-      {/* Hover Glow Effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-blue-500/0 group-hover:from-cyan-500/5 group-hover:to-blue-500/5 rounded-2xl pointer-events-none transition-all duration-500"></div>
     </div>
   );
