@@ -1,17 +1,22 @@
+// src/components/ServiceCard.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_LANGUAGE } from '../i18n';
-import { generateServiceSlug } from '../utils/urlHelpers';
+import { generateServiceSlug, extractIdFromSlug } from '../utils/urlHelpers';
 import { FaClock, FaStar, FaEye, FaShoppingCart, FaCheck, FaGamepad } from 'react-icons/fa';
 import axios from '../utils/axiosConfig';
 
-const ServiceCard = ({ service }) => {
+// ✅ CORRECCIÓN: Se agrega la prop onOrderNow
+const ServiceCard = ({ service, onOrderNow }) => {
   const serviceSlug = generateServiceSlug(service);
   
-  // Conversión segura: aseguramos que el _id sea un string plano aunque venga como objeto de Mongoose
+  // Conversión segura: aseguramos que el _id sea un string plano.
   const rawId = service._id || service.id;
-  const serviceId = rawId ? (typeof rawId === 'object' ? rawId.toString() : String(rawId)) : serviceSlug;
+  // Si no hay rawId, intentamos extraerlo del slug con extractIdFromSlug para evitar errores 400.
+  const serviceId = rawId 
+    ? (typeof rawId === 'object' ? rawId.toString() : String(rawId)) 
+    : extractIdFromSlug(serviceSlug);
   
   const { i18n } = useTranslation();
   const currentLang = i18n.language;
@@ -140,6 +145,13 @@ const ServiceCard = ({ service }) => {
           <Link
              to={`${prefix}/order/${serviceId}`}
              state={{ service, fixedPrice: price }}
+             onClick={(e) => {
+               // Validación: Si el ID no parece un MongoID de 24 caracteres, delegamos a la función del padre
+               if (!/^[0-9a-fA-F]{24}$/.test(serviceId)) {
+                 e.preventDefault();
+                 if (onOrderNow) onOrderNow(service);
+               }
+             }}
              className="flex-1 py-2.5 px-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 shadow-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white hover:shadow-cyan-500/30"
           >
             <FaShoppingCart className="text-sm" />

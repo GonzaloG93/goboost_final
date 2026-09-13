@@ -1,19 +1,17 @@
-// src/pages/ServicesPage.jsx - VERSIÓN CON SLUGS SEO E INTERNACIONALIZACIÓN
+// src/pages/ServicesPage.jsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useSearchParams, useParams } from 'react-router-dom'; // ✅ Cambio 1: removido useNavigate
+import { useSearchParams, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate'; // ✅ Cambio 1: nuevo import
-import LocalizedLink from '../components/LocalizedLink'; // ✅ Cambio 3: import de LocalizedLink
+import { useLocalizedNavigate } from '../hooks/useLocalizedNavigate';
+import LocalizedLink from '../components/LocalizedLink';
 import axios from '../utils/axiosConfig';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ServiceCard from '../components/ServiceCard';
 import SEO from '../components/SEO/SEO';
 import { BreadcrumbSchema } from '../components/SEO/StructuredData';
 import { toast } from 'react-toastify';
-import { generateServiceSlug } from '../utils/urlHelpers';
 import { 
   GAMES, 
-  GAME_SPECIFIC_SERVICES, 
   ALL_SERVICE_TYPES, 
   SERVICE_CATEGORIES,
   formatServiceType,
@@ -22,7 +20,7 @@ import {
 } from '../config/gamesConfig';
 
 const ServicesPage = () => {
-  const { t, i18n } = useTranslation(); // ✅ Fix traducción: agregado i18n para re-renderizar
+  const { t, i18n } = useTranslation();
   const { lang } = useParams();
   const currentLang = lang || 'en';
   
@@ -35,7 +33,7 @@ const ServicesPage = () => {
   const [error, setError] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
   const [displayCount, setDisplayCount] = useState(9);
-  const navigate = useLocalizedNavigate(); // ✅ Cambio 2: reemplazado useNavigate por useLocalizedNavigate
+  const navigate = useLocalizedNavigate(); 
   const [searchParams] = useSearchParams();
 
   const gameFromUrl = searchParams.get('game');
@@ -68,17 +66,11 @@ const ServicesPage = () => {
         setLoading(true);
         setError(null);
         
-        console.log('🔄 Loading services from /api/boosts...');
-        
         const response = await axios.get('/boosts');
-        
-        console.log('✅ Services loaded:', response.data.length);
         
         const availableServices = response.data.filter(service => 
           service.available !== false && service.isActive !== false
         );
-        
-        console.log('✅ Available services:', availableServices.length);
         
         setServices(availableServices);
         setFilteredServices(availableServices);
@@ -147,14 +139,18 @@ const ServicesPage = () => {
     setDisplayCount(9);
   }, [selectedGame, selectedType, activeCategory, searchTerm]);
 
-  // ✅ Usar navigate con prefijo automático (useLocalizedNavigate ya maneja el idioma)
+  // ✅ CORRECCIÓN: Ahora extrae el ID real y navega a `/order/` en lugar de `/service/`
   const handleOrderNow = (service) => {
-    if (!service._id) {
-      toast.error('Service not available');
+    const rawId = service._id || service.id;
+    if (!rawId) {
+      toast.error('Service ID not available. Please refresh or contact support.');
       return;
     }
-    const serviceSlug = generateServiceSlug(service);
-    navigate(`/service/${serviceSlug}`, {
+    
+    // Convertimos el ID a string por seguridad
+    const safeId = typeof rawId === 'object' ? rawId.toString() : String(rawId);
+    
+    navigate(`/order/${safeId}`, {
       state: {
         service: service,
         fixedPrice: service.basePrice || service.price
@@ -176,10 +172,6 @@ const ServicesPage = () => {
       hasActiveFilters: selectedGame || selectedType || activeCategory !== 'all' || searchTerm
     };
   }, [services, displayedServices, selectedGame, selectedType, activeCategory, searchTerm]);
-
-  const getServicePrice = (service) => {
-    return service.basePrice || service.price || 0;
-  };
 
   return (
     <>
