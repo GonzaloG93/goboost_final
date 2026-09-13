@@ -1,4 +1,4 @@
-// backend/routes/orders.js - VERSIÓN CORREGIDA Y MEJORADA
+// backend/routes/orders.js - VERSIÓN COMPLETA Y UNIFICADA
 import express from 'express';
 import Order from '../models/Order.js';
 import BoostService from '../models/BoostService.js';
@@ -97,7 +97,7 @@ router.get('/:orderId', auth, async (req, res) => {
   }
 });
 
-// ✅ CREAR NUEVA ORDEN - COMPLETAMENTE CORREGIDO
+// ✅ CREAR NUEVA ORDEN - COMPLETAMENTE CORREGIDO Y UNIFICADO
 router.post('/', auth, async (req, res) => {
   try {
     console.log('🆕 === CREANDO NUEVA ORDEN ===');
@@ -194,10 +194,12 @@ router.post('/', auth, async (req, res) => {
       });
     }
     
-    // ✅ RESPUESTA CON FORMATO CONSISTENTE
+    // ✅ RESPUESTA UNIFICADA Y SEGURA (Compatible con cualquier estructura que lea el frontend)
     res.status(201).json({
       success: true,
       message: 'Orden creada exitosamente',
+      _id: order._id,
+      id: order._id,
       order: {
         _id: order._id,
         orderNumber: order.orderNumber,
@@ -208,6 +210,11 @@ router.post('/', auth, async (req, res) => {
         service: order.service,
         gameDetails: order.gameDetails,
         priceBreakdown: order.priceBreakdown
+      },
+      data: {
+        _id: order._id,
+        orderNumber: order.orderNumber,
+        status: order.status
       }
     });
 
