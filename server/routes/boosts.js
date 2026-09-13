@@ -211,14 +211,22 @@ router.get('/', async (req, res) => {
     if (category) filter.category = category;
     if (available !== undefined) filter.available = available === 'true';
 
-    let query = BoostService.find(filter).sort({ createdAt: -1 });
+    let query = BoostService.find(filter).sort({ createdAt: -1 }).lean();
     if (limit) query = query.limit(parseInt(limit));
 
     const services = await query;
     const servicesWithPrice = services.map(service => {
-      const serviceObj = service.toObject();
-      if (service.basePrice !== undefined) serviceObj.price = service.basePrice;
-      return serviceObj;
+      if (service.basePrice !== undefined) {
+        service.price = service.basePrice;
+      }
+      
+      // Forzamos _id e id como string para compatibilidad total con el frontend
+      if (service._id) {
+        service._id = service._id.toString();
+        service.id = service._id;
+      }
+
+      return service;
     });
 
     res.json(servicesWithPrice);
@@ -266,6 +274,11 @@ router.get('/:id', async (req, res) => {
 
     const serviceObj = service.toObject();
     if (service.basePrice !== undefined) serviceObj.price = service.basePrice;
+    
+    if (serviceObj._id) {
+      serviceObj._id = serviceObj._id.toString();
+      serviceObj.id = serviceObj._id;
+    }
 
     res.json({ success: true, ...serviceObj });
   } catch (error) {
@@ -284,13 +297,16 @@ router.get('/:id', async (req, res) => {
 
 router.get('/debug/all', async (req, res) => {
   try {
-    const allServices = await BoostService.find({}).sort({ createdAt: -1 });
-    const availableServices = await BoostService.find({ available: true });
+    const allServices = await BoostService.find({}).sort({ createdAt: -1 }).lean();
+    const availableServices = await BoostService.find({ available: true }).lean();
 
     const servicesWithPrice = allServices.map(service => {
-      const serviceObj = service.toObject();
-      if (service.basePrice !== undefined) serviceObj.price = service.basePrice;
-      return serviceObj;
+      if (service.basePrice !== undefined) service.price = service.basePrice;
+      if (service._id) {
+        service._id = service._id.toString();
+        service.id = service._id;
+      }
+      return service;
     });
 
     res.json({
@@ -299,9 +315,12 @@ router.get('/debug/all', async (req, res) => {
       availableCount: availableServices.length,
       allServices: servicesWithPrice,
       availableServices: availableServices.map(s => {
-        const obj = s.toObject();
-        if (s.basePrice !== undefined) obj.price = s.basePrice;
-        return obj;
+        if (s.basePrice !== undefined) s.price = s.basePrice;
+        if (s._id) {
+          s._id = s._id.toString();
+          s.id = s._id;
+        }
+        return s;
       })
     });
   } catch (error) {
@@ -316,11 +335,14 @@ router.get('/debug/all', async (req, res) => {
 
 router.get('/admin/all', adminAuth, async (req, res) => {
   try {
-    const services = await BoostService.find({}).sort({ createdAt: -1 });
+    const services = await BoostService.find({}).sort({ createdAt: -1 }).lean();
     const servicesWithPrice = services.map(service => {
-      const serviceObj = service.toObject();
-      if (service.basePrice !== undefined) serviceObj.price = service.basePrice;
-      return serviceObj;
+      if (service.basePrice !== undefined) service.price = service.basePrice;
+      if (service._id) {
+        service._id = service._id.toString();
+        service.id = service._id;
+      }
+      return service;
     });
     res.json({ success: true, allServices: servicesWithPrice, total: services.length });
   } catch (error) {
@@ -333,7 +355,7 @@ router.get('/admin/all', adminAuth, async (req, res) => {
 // solo los grupos con más de 1 resultado — solo lectura, no borra nada.
 router.get('/admin/duplicates', adminAuth, async (req, res) => {
   try {
-    const services = await BoostService.find({}).sort({ createdAt: -1 });
+    const services = await BoostService.find({}).sort({ createdAt: -1 }).lean();
 
     const groups = {};
     services.forEach((service) => {
@@ -345,7 +367,8 @@ router.get('/admin/duplicates', adminAuth, async (req, res) => {
 
       if (!groups[key]) groups[key] = [];
       groups[key].push({
-        _id: service._id,
+        _id: service._id ? service._id.toString() : undefined,
+        id: service._id ? service._id.toString() : undefined,
         name: service.name,
         game: service.game,
         serviceType: service.serviceType,
@@ -429,6 +452,10 @@ router.post('/', adminAuth, async (req, res) => {
 
     const responseObj = service.toObject();
     if (service.basePrice !== undefined) responseObj.price = service.basePrice;
+    if (responseObj._id) {
+      responseObj._id = responseObj._id.toString();
+      responseObj.id = responseObj._id;
+    }
 
     if (req.io) req.io.emit('service_created_broadcast', responseObj);
 
@@ -490,6 +517,10 @@ router.put('/:id', adminAuth, async (req, res) => {
 
     const responseObj = service.toObject();
     if (service.basePrice !== undefined) responseObj.price = service.basePrice;
+    if (responseObj._id) {
+      responseObj._id = responseObj._id.toString();
+      responseObj.id = responseObj._id;
+    }
 
     if (req.io) req.io.emit('service_updated_broadcast', responseObj);
 
