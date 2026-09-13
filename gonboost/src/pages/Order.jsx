@@ -714,7 +714,10 @@ const Order = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    
+    console.log("🔥 [Paso 1] Botón presionado. Iniciando handleSubmit...");
+    console.log("🔥 [Paso 2] Servicio actual:", service?.serviceType);
 
     if ((isDuneBaseConstruction() || isDuneCraftVehicle()) && !buildSpecifications.trim()) {
       alert('Please provide special instructions / build specifications');
@@ -723,6 +726,7 @@ const Order = () => {
 
     setSubmitting(true);
     try {
+      console.log("🔥 [Paso 3] Entrando al bloque try. Generando detalles de la build...");
       let buildDetails = {};
       
       if (isMopRaid()) {
@@ -810,8 +814,11 @@ const Order = () => {
       }
 
       if (isPoE2CustomBuild()) {
+        console.log("🔥 [Paso 3.1] Procesando Custom Build de PoE2...");
         const selectedAddonIds = Object.keys(selectedCustomBuildAddons).filter(id => selectedCustomBuildAddons[id]);
-        const levelingOpt = CUSTOM_BUILD_CONFIG.levelingOptions.find(o => o.id === selectedCustomBuildLevelingOption);
+        
+        const levelingOpt = CUSTOM_BUILD_CONFIG?.levelingOptions?.find(o => o.id === selectedCustomBuildLevelingOption);
+        
         buildDetails = {
           ...buildDetails,
           customBuildCategory: selectedCustomBuildCategory,
@@ -819,7 +826,7 @@ const Order = () => {
           levelingOptionLabel: levelingOpt?.label || 'No Leveling',
           divineOrbCount: customBuildDivineOrbCount,
           selectedAddonIds,
-          selectedAddonNames: selectedAddonIds.map(id => CUSTOM_BUILD_CONFIG.addons.find(a => a.id === id)?.name).filter(Boolean),
+          selectedAddonNames: selectedAddonIds.map(id => CUSTOM_BUILD_CONFIG?.addons?.find(a => a.id === id)?.name).filter(Boolean),
           buildSpecifications
         };
       }
@@ -888,25 +895,28 @@ const Order = () => {
         priceBreakdown: currentBreakdown
       };
       
+      console.log('🔥 [Paso 4] Datos empaquetados, listos para enviar a axios:', orderData);
+      
       const response = await axios.post('/orders', orderData);
       
-      // Imprimimos la respuesta en consola para ver exactamente qué manda el backend
-      console.log('Respuesta cruda del backend:', response.data);
+      console.log('🔥 [Paso 5] Respuesta cruda recibida del backend:', response.data);
 
-      // Capturamos el ID evaluando las 4 estructuras de respuesta más comunes en APIs de Express
       const newOrderId = response.data?.data?._id 
                       || response.data?.order?._id 
                       || response.data?.data?.order?._id 
                       || response.data?._id;
 
       if (!newOrderId) {
-        console.error('No se pudo ubicar el _id en la siguiente respuesta:', response.data);
-        throw new Error('La orden se creó pero no se pudo obtener su ID. Revisá la consola (F12) para ver qué devolvió el backend.');
+        console.error('❌ No se pudo ubicar el _id en la respuesta:', response.data);
+        throw new Error('La orden se creó pero no se pudo obtener su ID. Revisá la consola.');
       }
 
+      console.log(`🔥 [Paso 6] Redirigiendo a /checkout/${newOrderId}`);
       navigate(`/checkout/${newOrderId}`);
+
     } catch (error) {
-      alert('Error: ' + error.message);
+      console.error("❌ Error capturado en el catch:", error);
+      alert('Error al procesar: ' + error.message);
     } finally {
       setSubmitting(false);
     }
