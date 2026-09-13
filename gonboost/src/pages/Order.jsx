@@ -717,7 +717,6 @@ const Order = () => {
     if (e) e.preventDefault();
     
     console.log("🔥 [Paso 1] Botón presionado. Iniciando handleSubmit...");
-    console.log("🔥 [Paso 2] Servicio actual:", service?.serviceType);
 
     if ((isDuneBaseConstruction() || isDuneCraftVehicle()) && !buildSpecifications.trim()) {
       alert('Please provide special instructions / build specifications');
@@ -726,7 +725,6 @@ const Order = () => {
 
     setSubmitting(true);
     try {
-      console.log("🔥 [Paso 3] Entrando al bloque try. Generando detalles de la build...");
       let buildDetails = {};
       
       if (isMopRaid()) {
@@ -814,9 +812,7 @@ const Order = () => {
       }
 
       if (isPoE2CustomBuild()) {
-        console.log("🔥 [Paso 3.1] Procesando Custom Build de PoE2...");
         const selectedAddonIds = Object.keys(selectedCustomBuildAddons).filter(id => selectedCustomBuildAddons[id]);
-        
         const levelingOpt = CUSTOM_BUILD_CONFIG?.levelingOptions?.find(o => o.id === selectedCustomBuildLevelingOption);
         
         buildDetails = {
@@ -895,28 +891,32 @@ const Order = () => {
         priceBreakdown: currentBreakdown
       };
       
-      console.log('🔥 [Paso 4] Datos empaquetados, listos para enviar a axios:', orderData);
-      
       const response = await axios.post('/orders', orderData);
       
-      console.log('🔥 [Paso 5] Respuesta cruda recibida del backend:', response.data);
+      console.log('📦 Respuesta completa del servidor al crear orden:', response);
+      console.log('📦 response.data:', response.data);
 
-      const newOrderId = response.data?.data?._id 
-                      || response.data?.order?._id 
-                      || response.data?.data?.order?._id 
-                      || response.data?._id;
+      const resData = response.data;
+
+      // Extracción del ID abarcando cualquier estructura posible devuelta por Mongoose/Backend
+      const newOrderId = resData?.data?._id 
+                      || resData?.order?._id 
+                      || resData?.data?.order?._id 
+                      || resData?._id
+                      || resData?.id
+                      || resData?.data?.id;
 
       if (!newOrderId) {
-        console.error('❌ No se pudo ubicar el _id en la respuesta:', response.data);
-        throw new Error('La orden se creó pero no se pudo obtener su ID. Revisá la consola.');
+        console.error('❌ Estructura de respuesta desconocida:', resData);
+        throw new Error('La orden se creó pero no se pudo extraer el ID. Revisa el objeto impreso en consola.');
       }
 
-      console.log(`🔥 [Paso 6] Redirigiendo a /checkout/${newOrderId}`);
+      console.log(`🚀 Redirigiendo a /checkout/${newOrderId}`);
       navigate(`/checkout/${newOrderId}`);
 
     } catch (error) {
       console.error("❌ Error capturado en el catch:", error);
-      alert('Error al procesar: ' + error.message);
+      alert('Error al procesar: ' + (error.response?.data?.message || error.message));
     } finally {
       setSubmitting(false);
     }
