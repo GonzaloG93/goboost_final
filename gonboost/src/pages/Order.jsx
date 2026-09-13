@@ -889,10 +889,19 @@ const Order = () => {
       };
       
       const response = await axios.post('/orders', orderData);
-      const newOrderId = response.data?.data?._id;
+      
+      // Imprimimos la respuesta en consola para ver exactamente qué manda el backend
+      console.log('Respuesta cruda del backend:', response.data);
+
+      // Capturamos el ID evaluando las 4 estructuras de respuesta más comunes en APIs de Express
+      const newOrderId = response.data?.data?._id 
+                      || response.data?.order?._id 
+                      || response.data?.data?.order?._id 
+                      || response.data?._id;
 
       if (!newOrderId) {
-        throw new Error('La orden se creó pero no se pudo obtener su ID. Revisá "Mis Pedidos".');
+        console.error('No se pudo ubicar el _id en la siguiente respuesta:', response.data);
+        throw new Error('La orden se creó pero no se pudo obtener su ID. Revisá la consola (F12) para ver qué devolvió el backend.');
       }
 
       navigate(`/checkout/${newOrderId}`);
