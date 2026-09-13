@@ -889,7 +889,13 @@ const Order = () => {
       };
       
       const response = await axios.post('/orders', orderData);
-      navigate(`/checkout/${response.data.order._id}`);
+      const newOrderId = response.data?.data?._id;
+
+      if (!newOrderId) {
+        throw new Error('La orden se creó pero no se pudo obtener su ID. Revisá "Mis Pedidos".');
+      }
+
+      navigate(`/checkout/${newOrderId}`);
     } catch (error) {
       alert('Error: ' + error.message);
     } finally {
