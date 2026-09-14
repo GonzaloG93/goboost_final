@@ -40,19 +40,36 @@ const Checkout = () => {
       try {
         setLoading(true);
         const orderResponse = await axios.get(`/orders/${orderId}`);
-        let orderData;
         
-        if (orderResponse.data?._id) {
-          orderData = orderResponse.data;
-        } else if (orderResponse.data?.data?._id) {
-          orderData = orderResponse.data.data;
-        } else if (orderResponse.data?.order?._id) {
-          orderData = orderResponse.data.order;
-        } else {
+        // 1. Imprimimos la respuesta en consola para debug
+        console.log("Datos de la orden recibidos:", orderResponse.data);
+        
+        let orderData = null;
+        const res = orderResponse.data;
+
+        // 2. Extracción a prueba de fallos (Soporta Arrays y Objetos)
+        if (Array.isArray(res) && res.length > 0) {
+          orderData = res[0]; 
+        } else if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+          orderData = res.data[0];
+        } else if (res?._id) {
+          orderData = res;
+        } else if (res?.data?._id) {
+          orderData = res.data;
+        } else if (res?.order?._id) {
+          orderData = res.order;
+        }
+
+        if (!orderData || !orderData._id) {
+          console.error("No se pudo parsear la orden:", res);
           throw new Error('Could not get order information');
         }
 
-        if (orderData.user?._id !== user._id && orderData.user !== user._id) {
+        // 3. Validación de permisos segura (forzando conversión a String)
+        const currentUserId = user?._id || user?.id;
+        const orderUserId = orderData.user?._id || orderData.user?.id || orderData.user;
+
+        if (currentUserId && orderUserId && String(orderUserId) !== String(currentUserId)) {
           throw new Error('You do not have permission to access this order');
         }
 
