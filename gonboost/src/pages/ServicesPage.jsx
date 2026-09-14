@@ -20,12 +20,10 @@ import {
 } from '../config/gamesConfig';
 
 const ServicesPage = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { lang } = useParams();
-  const currentLang = lang || 'en';
   
   const [services, setServices] = useState([]);
-  const [filteredServices, setFilteredServices] = useState([]);
   const [selectedGame, setSelectedGame] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,6 +31,7 @@ const ServicesPage = () => {
   const [error, setError] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
   const [displayCount, setDisplayCount] = useState(9);
+  
   const navigate = useLocalizedNavigate(); 
   const [searchParams] = useSearchParams();
 
@@ -73,7 +72,6 @@ const ServicesPage = () => {
         );
         
         setServices(availableServices);
-        setFilteredServices(availableServices);
       } catch (error) {
         console.error('❌ Error loading services:', error);
         
@@ -89,7 +87,6 @@ const ServicesPage = () => {
         setError(errorMessage);
         toast.error(errorMessage);
         setServices([]);
-        setFilteredServices([]);
       } finally {
         setLoading(false);
       }
@@ -139,7 +136,7 @@ const ServicesPage = () => {
     setDisplayCount(9);
   }, [selectedGame, selectedType, activeCategory, searchTerm]);
 
-  // ✅ CORRECCIÓN: Ahora extrae el ID real y navega a `/order/` en lugar de `/service/`
+  // Manejo centralizado de órdenes
   const handleOrderNow = (service) => {
     const rawId = service._id || service.id;
     if (!rawId) {
@@ -147,7 +144,6 @@ const ServicesPage = () => {
       return;
     }
     
-    // Convertimos el ID a string por seguridad
     const safeId = typeof rawId === 'object' ? rawId.toString() : String(rawId);
     
     navigate(`/order/${safeId}`, {
@@ -404,7 +400,11 @@ const ServicesPage = () => {
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                       {visibleServices.map(service => (
-                        <ServiceCard key={service._id} service={service} onOrderNow={handleOrderNow} />
+                        <ServiceCard 
+                          key={service._id || service.id} 
+                          service={service} 
+                          onOrderNow={handleOrderNow} 
+                        />
                       ))}
                     </div>
 
