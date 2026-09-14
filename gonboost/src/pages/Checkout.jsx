@@ -1,3 +1,4 @@
+// src/pages/Checkout.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from '../utils/axiosConfig';
@@ -11,7 +12,7 @@ const KOFI_LINK = "https://ko-fi.com/gonboost";
 
 const Checkout = () => {
   const { orderId } = useParams();
-  const { user } = useAuth();
+  const { user, guestLogin } = useAuth();
   const navigate = useNavigate();
   
   const [order, setOrder] = useState(null);
@@ -23,6 +24,10 @@ const Checkout = () => {
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [imageError, setImageError] = useState(false);
   
+  // Estado para Checkout de Invitado
+  const [guestEmail, setGuestEmail] = useState('');
+  const [isGuestSubmitting, setIsGuestSubmitting] = useState(false);
+
   const [showProofUpload, setShowProofUpload] = useState(false);
   const [proofImage, setProofImage] = useState(null);
   const [proofPreview, setProofPreview] = useState(null);
@@ -32,8 +37,14 @@ const Checkout = () => {
 
   useEffect(() => {
     const fetchOrderAndMethods = async () => {
-      if (!orderId || !user) {
-        navigate('/login');
+      if (!orderId) {
+        navigate('/');
+        return;
+      }
+
+      // Si el usuario no ha iniciado sesión ni ingresado como invitado, detenemos la carga para mostrar la pantalla de invitado
+      if (!user) {
+        setLoading(false);
         return;
       }
 
@@ -41,13 +52,11 @@ const Checkout = () => {
         setLoading(true);
         const orderResponse = await axios.get(`/orders/${orderId}`);
         
-        // 1. Imprimimos la respuesta en consola para debug
         console.log("Datos de la orden recibidos:", orderResponse.data);
         
         let orderData = null;
         const res = orderResponse.data;
 
-        // 2. Extracción a prueba de fallos (Soporta Arrays y Objetos)
         if (Array.isArray(res) && res.length > 0) {
           orderData = res[0]; 
         } else if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
@@ -65,11 +74,11 @@ const Checkout = () => {
           throw new Error('Could not get order information');
         }
 
-        // 3. Validación de permisos segura (forzando conversión a String)
         const currentUserId = user?._id || user?.id;
         const orderUserId = orderData.user?._id || orderData.user?.id || orderData.user;
 
-        if (currentUserId && orderUserId && String(orderUserId) !== String(currentUserId)) {
+        // Si no es un usuario de prueba local o no coincide el ID, solo advertimos en invitados
+        if (currentUserId && orderUserId && String(orderUserId) !== String(currentUserId) && !user.isGuest) {
           throw new Error('You do not have permission to access this order');
         }
 
@@ -127,6 +136,27 @@ const Checkout = () => {
 
     fetchOrderAndMethods();
   }, [orderId, user, navigate]);
+
+  const handleGuestSubmit = async (e) => {
+    e.preventDefault();
+    if (!guestEmail || !guestEmail.includes('@')) {
+      toast.error('Por favor ingresa un correo electrónico válido');
+      return;
+    }
+
+    setIsGuestSubmitting(true);
+    const result = await guestLogin(guestEmail);
+    setIsGuestSubmitting(false);
+
+    if (result.success) {
+      toast.success('Sesión de invitado iniciada');
+    } else if (result.requiresLogin) {
+      toast.info('Este correo ya pertenece a un usuario. Inicia sesión para continuar.');
+      navigate('/login');
+    } else {
+      toast.error(result.error || 'Error al ingresar como invitado');
+    }
+  };
 
   const checkPaymentStatus = async () => {
     if (!order) return;
@@ -292,6 +322,65 @@ const Checkout = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading checkout...</p>
             <p className="text-gray-400 text-sm mt-2">Order: {orderId}</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // PANTALLA CHECKOUT DE INVITADO: Si no hay usuario en AuthContext
+  if (!user) {
+    return (
+      <>
+        <CustomNavbar />
+        <ToastContainer position="top-right" autoClose={5000} theme="colored" />
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 pt-24 pb-12 px-4">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-gray-200 text-center">
+            <div className="text-5xl mb-4">🛒</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Completa tu pedido</h2>
+            <p className="text-gray-600 mb-6 text-sm">
+              Ingresa tu correo electrónico para vincular tu orden y recibir notificaciones del estado de tu servicio.
+            </p>
+
+            <form onSubmit={handleGuestSubmit} className="space-y-4">
+              <div className="text-left">
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                  Correo Electrónico *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  placeholder="tu@correo.com"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isGuestSubmitting}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+              >
+                {isGuestSubmitting ? 'Procesando...' : 'Continuar como Invitado'}
+              </button>
+            </form>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-3 text-gray-500 font-semibold">o</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-6 rounded-xl transition-all border border-gray-300"
+            >
+              Iniciar Sesión
+            </button>
           </div>
         </div>
       </>

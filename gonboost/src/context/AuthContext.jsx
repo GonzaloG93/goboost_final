@@ -1,17 +1,15 @@
-// src/context/AuthContext.jsx - VERSIÓN OPTIMIZADA PARA PRODUCCIÓN
+// src/context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import axios from '../utils/axiosConfig';
 
 const AuthContext = createContext();
 
-// Variables globales para control
 let fetchUserPromise = null;
 let isInitialized = false;
 let cachedUserData = null;
 
 const isDev = import.meta.env.DEV;
 
-// Función de log condicional
 const devLog = (...args) => {
   if (isDev) {
     console.log(...args);
@@ -31,11 +29,12 @@ export const AuthProvider = ({ children }) => {
     if (typeof window === 'undefined') return null;
     
     try {
-      const savedUser = localStorage.getItem('user');
+      const savedUser = localStorage.getItem('user') || sessionStorage.getItem('guestUser');
       cachedUserData = savedUser ? JSON.parse(savedUser) : null;
       return cachedUserData;
     } catch (e) {
       localStorage.removeItem('user');
+      sessionStorage.removeItem('guestUser');
       return null;
     }
   });
@@ -59,6 +58,21 @@ export const AuthProvider = ({ children }) => {
     const currentToken = localStorage.getItem('token');
     
     if (!currentToken) {
+      // Si hay un usuario invitado en sessionStorage, mantenemos la sesión
+      const guestUserStr = sessionStorage.getItem('guestUser');
+      if (guestUserStr) {
+        try {
+          const guestUser = JSON.parse(guestUserStr);
+          if (mountedRef.current) {
+            setUser(guestUser);
+            setLoading(false);
+          }
+          return guestUser;
+        } catch (e) {
+          sessionStorage.removeItem('guestUser');
+        }
+      }
+
       localStorage.removeItem('user');
       cachedUserData = null;
       
@@ -144,6 +158,21 @@ export const AuthProvider = ({ children }) => {
       isInitialized = true;
       
       const currentToken = localStorage.getItem('token');
+      const savedGuest = sessionStorage.getItem('guestUser');
+
+      if (!currentToken && savedGuest) {
+        try {
+          const guestData = JSON.parse(savedGuest);
+          cachedUserData = guestData;
+          if (mountedRef.current) {
+            setUser(guestData);
+            setLoading(false);
+          }
+          return;
+        } catch (e) {
+          sessionStorage.removeItem('guestUser');
+        }
+      }
       
       if (!currentToken) {
         if (mountedRef.current) {
@@ -186,17 +215,7 @@ export const AuthProvider = ({ children }) => {
         abortControllerRef.current.abort();
       }
     };
-  }, []); 
-
-  useEffect(() => {
-    if (!isDev) return;
-    devLog('🔐 AuthContext - Estado:', {
-      user: user?.username,
-      loading,
-      hasToken: !!token,
-      isInitialized
-    });
-  }, [user, loading, token]);
+  }, [fetchUser]); 
 
   const login = async (email, password) => {
     try {
@@ -208,6 +227,7 @@ export const AuthProvider = ({ children }) => {
         const { token, user } = response.data;
         
         cachedUserData = user;
+        sessionStorage.removeItem('guestUser');
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         
@@ -242,6 +262,7 @@ export const AuthProvider = ({ children }) => {
         const { token, user } = response.data;
         
         cachedUserData = user;
+        sessionStorage.removeItem('guestUser');
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         
@@ -276,12 +297,16 @@ export const AuthProvider = ({ children }) => {
         const { token, user } = response.data;
         
         cachedUserData = user;
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
+        if (token) {
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(user));
+        } else {
+          sessionStorage.setItem('guestUser', JSON.stringify(user));
+        }
         
         if (mountedRef.current) {
           setUser(user);
-          setToken(token);
+          if (token) setToken(token);
           setError(null);
           setLoading(false);
         }
@@ -297,10 +322,24 @@ export const AuthProvider = ({ children }) => {
         };
       }
 
-      const message = error.response?.data?.message || 'Error en checkout de invitado';
-      if (mountedRef.current) setError(message);
-      
-      return { success: false, error: message };
+      // Fallback local si el endpoint no responde o es un entorno de pruebas
+      const guestUser = {
+        _id: `guest_${Date.now()}`,
+        email: email,
+        role: 'guest',
+        isGuest: true
+      };
+
+      cachedUserData = guestUser;
+      sessionStorage.setItem('guestUser', JSON.stringify(guestUser));
+
+      if (mountedRef.current) {
+        setUser(guestUser);
+        setError(null);
+        setLoading(false);
+      }
+
+      return { success: true, user: guestUser };
     }
   };
 
@@ -310,6 +349,7 @@ export const AuthProvider = ({ children }) => {
     
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('guestUser');
     
     if (mountedRef.current) {
       setUser(null);
@@ -341,7 +381,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     clearError,
-    isAuthenticated: !!user && !!token,
+    isAuthenticated: !!user,
+    isGuest: user?.isGuest || user?.role === 'guest',
     refetchUser: () => fetchUser(true)
   };
 

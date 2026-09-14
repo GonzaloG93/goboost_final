@@ -1,4 +1,4 @@
-// App.jsx - VERSIÓN CORREGIDA Y DEFINITIVA
+// App.jsx
 import React, { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useParams, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -70,7 +70,6 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// ✅ LanguageLayout: Sincroniza i18n con el parámetro lang de la URL sin re-montar el árbol
 const LanguageLayout = () => {
   const { i18n } = useTranslation();
   const { lang } = useParams();
@@ -106,13 +105,15 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-const AuthenticatedRoute = ({ children }) => {
+// Permite acceso a usuarios autenticados o bien a invitados si allowGuest es true
+const AuthenticatedRoute = ({ children, allowGuest = false }) => {
   const { user, loading } = useAuth();
   const { lang } = useParams();
   const currentLang = lang && SUPPORTED_LANGUAGES.includes(lang) ? lang : DEFAULT_LANGUAGE;
   if (loading) return <LoadingSpinner />;
+  if (user || allowGuest) return children;
   const loginPath = currentLang === DEFAULT_LANGUAGE ? '/login' : `/${currentLang}/login`;
-  return user ? children : <Navigate to={loginPath} replace />;
+  return <Navigate to={loginPath} replace />;
 };
 
 const CustomerRoute = ({ children }) => {
@@ -133,20 +134,6 @@ const BoosterRoute = ({ children }) => {
   return user && user.role === 'booster' ? children : <Navigate to={homePath} replace />;
 };
 
-// ✅ RootRedirect: Maneja únicamente la ruta raíz '/'
-//
-// IMPORTANTE: este componente NO debe pelear con la navegación explícita del
-// usuario. Si el usuario está en '/' es porque quiere estar en inglés (lo
-// eligió con el selector, tocó "atrás", o entró a un link al home) — no hay
-// que reinterpretar esa intención leyendo localStorage de nuevo, porque
-// LanguageLayout todavía no tuvo chance de sincronizar i18n.language en su
-// useEffect (que corre DESPUÉS de este render), y eso generaba un rebote
-// inmediato de vuelta a /es (o al idioma guardado) cada vez que se volvía
-// a la raíz, incluso justo después de elegir inglés.
-//
-// El auto-redirect al idioma guardado/preferido del navegador solo tiene
-// sentido en la primera visita real al sitio, nunca en visitas posteriores
-// a la raíz.
 const RootRedirect = () => {
   const hasVisitedBefore = localStorage.getItem('hasVisitedGonboost') === 'true';
   const savedLang = localStorage.getItem('preferredLanguage');
@@ -208,7 +195,6 @@ function AppContent() {
       <main className="relative min-h-[calc(100vh-4rem)]" role="main">
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
-            {/* Rutas sin i18n */}
             <Route path="/payment/cancel" element={<PaymentCancel />} />
             <Route path="/paypal/success" element={<PayPalSuccess />} />
 
@@ -244,8 +230,8 @@ function AppContent() {
               <Route path="terms-of-service" element={<TermsOfService />} />
               <Route path="privacy" element={<PrivacyPolicy />} />
               <Route path="privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="order/:serviceId" element={<AuthenticatedRoute><Order /></AuthenticatedRoute>} />
-              <Route path="checkout/:orderId" element={<AuthenticatedRoute><Checkout /></AuthenticatedRoute>} />
+              <Route path="order/:serviceId" element={<AuthenticatedRoute allowGuest={true}><Order /></AuthenticatedRoute>} />
+              <Route path="checkout/:orderId" element={<AuthenticatedRoute allowGuest={true}><Checkout /></AuthenticatedRoute>} />
               <Route path="orders/:orderId" element={<AuthenticatedRoute><OrderDetails /></AuthenticatedRoute>} />
               <Route path="support" element={<AuthenticatedRoute><SupportChat /></AuthenticatedRoute>} />
               <Route path="my-orders" element={<AuthenticatedRoute><MyOrders /></AuthenticatedRoute>} />
@@ -265,8 +251,8 @@ function AppContent() {
               <Route path="terms-of-service" element={<TermsOfService />} />
               <Route path="privacy" element={<PrivacyPolicy />} />
               <Route path="privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="order/:serviceId" element={<AuthenticatedRoute><Order /></AuthenticatedRoute>} />
-              <Route path="checkout/:orderId" element={<AuthenticatedRoute><Checkout /></AuthenticatedRoute>} />
+              <Route path="order/:serviceId" element={<AuthenticatedRoute allowGuest={true}><Order /></AuthenticatedRoute>} />
+              <Route path="checkout/:orderId" element={<AuthenticatedRoute allowGuest={true}><Checkout /></AuthenticatedRoute>} />
               <Route path="orders/:orderId" element={<AuthenticatedRoute><OrderDetails /></AuthenticatedRoute>} />
               <Route path="support" element={<AuthenticatedRoute><SupportChat /></AuthenticatedRoute>} />
               <Route path="my-orders" element={<AuthenticatedRoute><MyOrders /></AuthenticatedRoute>} />
@@ -274,7 +260,6 @@ function AppContent() {
               <Route path="booster/dashboard" element={<BoosterRoute><BoosterDashboard /></BoosterRoute>} />
             </Route>
 
-            {/* 404 Global */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
