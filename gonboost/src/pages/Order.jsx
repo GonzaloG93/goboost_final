@@ -48,10 +48,15 @@ import LevelingOptions from '../components/order/LevelingOptions';
 import ServiceSummary from '../components/order/ServiceSummary';
 
 const Order = () => {
-  const { serviceId } = useParams();
+  const params = useParams();
+  // ✅ Soporta tanto :id como :serviceId en la definición de rutas de React Router
+  const serviceId = params.serviceId || params.id;
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  
+  // ✅ Obtenemos authLoading para pausar validaciones de login hasta que AuthContext termine
+  const { user, loading: authLoading } = useAuth();
+  
   const { 
     getMaxLevel, 
     isLevelingService, 
@@ -60,7 +65,7 @@ const Order = () => {
     getPriceBreakdown
   } = usePricing();
 
-  // ✅ VALIDACIÓN DE ID DE SERVICIO – Redirige si no es un ObjectId válido
+  // ✅ VALIDACIÓN DE ID DE SERVICIO – Redirige únicamente si el ID no es un ObjectId válido de Mongoose
   useEffect(() => {
     if (!serviceId || serviceId === 'undefined' || !/^[a-f\d]{24}$/i.test(serviceId)) {
       console.warn('❌ ID de servicio inválido:', serviceId);
@@ -592,7 +597,7 @@ const Order = () => {
 
   // ========== FETCH SERVICE ==========
   const fetchService = useCallback(async () => {
-    if (hasFetchedRef.current || !user || !serviceId) return;
+    if (hasFetchedRef.current || !serviceId) return;
     hasFetchedRef.current = true;
 
     try {
@@ -667,12 +672,18 @@ const Order = () => {
     } finally {
       setLoading(false);
     }
-  }, [serviceId, user, getMaxLevel, getPricePerLevel]);
+  }, [serviceId, getMaxLevel, getPricePerLevel]);
 
+  // ✅ EFECTO DE AUTENTICACIÓN Y CARGA CORREGIDO
   useEffect(() => {
-    if (!user) navigate('/login');
-    else fetchService();
-  }, [user, navigate, fetchService]);
+    if (authLoading) return; // Esperar a que el estado de auth esté listo
+
+    if (!user) {
+      navigate('/login', { state: { from: location } });
+    } else {
+      fetchService();
+    }
+  }, [user, authLoading, navigate, fetchService, location]);
 
   // ========== HANDLERS ==========
   const handleChange = (e) => {
@@ -898,7 +909,6 @@ const Order = () => {
 
       const resData = response.data;
 
-      // Extracción del ID abarcando cualquier estructura posible devuelta por Mongoose/Backend
       const newOrderId = resData?.data?._id 
                       || resData?.order?._id 
                       || resData?.data?.order?._id 
@@ -1216,7 +1226,7 @@ const Order = () => {
   };
 
   // ========== LOADING & ERROR STATES ==========
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <>
         <CustomNavbar />
