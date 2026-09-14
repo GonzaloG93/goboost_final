@@ -10,12 +10,6 @@ let cachedUserData = null;
 
 const isDev = import.meta.env.DEV;
 
-const devLog = (...args) => {
-  if (isDev) {
-    console.log(...args);
-  }
-};
-
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -27,7 +21,6 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     if (typeof window === 'undefined') return null;
-    
     try {
       const savedUser = localStorage.getItem('user') || sessionStorage.getItem('guestUser');
       cachedUserData = savedUser ? JSON.parse(savedUser) : null;
@@ -38,15 +31,15 @@ export const AuthProvider = ({ children }) => {
       return null;
     }
   });
-  
+
   const [token, setToken] = useState(() => {
     if (typeof window === 'undefined') return null;
     return localStorage.getItem('token');
   });
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const mountedRef = useRef(true);
   const abortControllerRef = useRef(null);
 
@@ -56,9 +49,8 @@ export const AuthProvider = ({ children }) => {
     }
 
     const currentToken = localStorage.getItem('token');
-    
+
     if (!currentToken) {
-      // Si hay un usuario invitado en sessionStorage, mantenemos la sesión
       const guestUserStr = sessionStorage.getItem('guestUser');
       if (guestUserStr) {
         try {
@@ -75,7 +67,7 @@ export const AuthProvider = ({ children }) => {
 
       localStorage.removeItem('user');
       cachedUserData = null;
-      
+
       if (mountedRef.current) {
         setToken(null);
         setUser(null);
@@ -99,64 +91,70 @@ export const AuthProvider = ({ children }) => {
       }
 
       abortControllerRef.current = new AbortController();
-      
-      fetchUserPromise = axios.get('/auth/me', {
-        signal: abortControllerRef.current.signal,
-        timeout: 10000
-      }).then(response => {
-        if (response.data.success && response.data.user) {
-          const userData = response.data.user;
-          
-          cachedUserData = userData;
-          localStorage.setItem('user', JSON.stringify(userData));
-          
-          if (mountedRef.current) {
-            setUser(userData);
-            setToken(currentToken);
+
+      fetchUserPromise = axios
+        .get('/auth/me', {
+          signal: abortControllerRef.current.signal,
+          timeout: 10000,
+        })
+        .then((response) => {
+          if (response.data.success && response.data.user) {
+            const userData = response.data.user;
+            cachedUserData = userData;
+            localStorage.setItem('user', JSON.stringify(userData));
+
+            if (mountedRef.current) {
+              setUser(userData);
+              setToken(currentToken);
+            }
+            return userData;
           }
-          
-          return userData;
-        }
-        throw new Error('Invalid user data received');
-      }).catch(error => {
-        if (error.name === 'CanceledError' || error.name === 'AbortError') {
-          return null; 
-        }
-        
-        if (error.response?.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          cachedUserData = null;
-          
-          if (mountedRef.current) {
-            setUser(null);
-            setToken(null);
-            setError('Session expired. Please login again.');
+          throw new Error('Invalid user data received');
+        })
+        .catch((error) => {
+          if (error.name === 'CanceledError' || error.name === 'AbortError') {
+            return null;
           }
-        }
-        return null;
-      }).finally(() => {
-        fetchUserPromise = null;
-        abortControllerRef.current = null;
-      });
+
+          // Solo destruye la sesión si el servidor confirma que el token expiró (401)
+          if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            cachedUserData = null;
+
+            if (mountedRef.current) {
+              setUser(null);
+              setToken(null);
+              setError('Session expired. Please login again.');
+            }
+          }
+          return null;
+        })
+        .finally(() => {
+          fetchUserPromise = null;
+          abortControllerRef.current = null;
+          if (mountedRef.current) {
+            setLoading(false);
+          }
+        });
 
       return fetchUserPromise;
     } catch (error) {
+      if (mountedRef.current) setLoading(false);
       return null;
     }
   }, []);
 
   useEffect(() => {
     mountedRef.current = true;
-    
-    if (isInitialized) {
-      setLoading(false);
-      return;
-    }
 
     const initializeAuth = async () => {
+      if (isInitialized) {
+        setLoading(false);
+        return;
+      }
       isInitialized = true;
-      
+
       const currentToken = localStorage.getItem('token');
       const savedGuest = sessionStorage.getItem('guestUser');
 
@@ -173,32 +171,28 @@ export const AuthProvider = ({ children }) => {
           sessionStorage.removeItem('guestUser');
         }
       }
-      
+
       if (!currentToken) {
         if (mountedRef.current) {
           setLoading(false);
         }
         return;
       }
-      
+
       const savedUser = localStorage.getItem('user');
       if (savedUser) {
         try {
           const userData = JSON.parse(savedUser);
           cachedUserData = userData;
-          
+
           if (mountedRef.current) {
             setUser(userData);
             setToken(currentToken);
             setLoading(false);
           }
-          
-          setTimeout(() => {
-            if (mountedRef.current) {
-              fetchUser(true).catch(() => {});
-            }
-          }, 100);
-          
+
+          // Validación en segundo plano sin interrumpir la sesión inmediata
+          fetchUser(true).catch(() => {});
         } catch (e) {
           await fetchUser();
         }
@@ -206,47 +200,45 @@ export const AuthProvider = ({ children }) => {
         await fetchUser();
       }
     };
-    
+
     initializeAuth();
-    
+
     return () => {
       mountedRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchUser]); 
+  }, [fetchUser]);
 
   const login = async (email, password) => {
     try {
       setError(null);
-      
       const response = await axios.post('/auth/login', { email, password });
-      
+
       if (response.data.success) {
         const { token, user } = response.data;
-        
         cachedUserData = user;
         sessionStorage.removeItem('guestUser');
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
-        
+
         if (mountedRef.current) {
           setUser(user);
           setToken(token);
           setError(null);
           setLoading(false);
         }
-        
         return { success: true, user };
       } else {
         throw new Error(response.data.message || 'Login failed');
       }
     } catch (error) {
-      const message = error.response?.data?.message || 
-                     error.response?.data?.error || 
-                     'Error en el inicio de sesión. Verifica tus credenciales.';
-      
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Error en el inicio de sesión. Verifica tus credenciales.';
+
       if (mountedRef.current) setError(message);
       return { success: false, error: message };
     }
@@ -255,33 +247,31 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       setError(null);
-      
       const response = await axios.post('/auth/register', userData);
-      
+
       if (response.data.success) {
         const { token, user } = response.data;
-        
         cachedUserData = user;
         sessionStorage.removeItem('guestUser');
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
-        
+
         if (mountedRef.current) {
           setUser(user);
           setToken(token);
           setError(null);
           setLoading(false);
         }
-        
         return { success: true, user };
       } else {
         throw new Error(response.data.message || 'Registration failed');
       }
     } catch (error) {
-      const message = error.response?.data?.message || 
-                     error.response?.data?.error || 
-                     'Error en el registro';
-      
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Error en el registro';
+
       if (mountedRef.current) setError(message);
       return { success: false, error: message };
     }
@@ -290,12 +280,10 @@ export const AuthProvider = ({ children }) => {
   const guestLogin = async (email) => {
     try {
       setError(null);
-      
       const response = await axios.post('/auth/guest-auth', { email });
-      
+
       if (response.data.success) {
         const { token, user } = response.data;
-        
         cachedUserData = user;
         if (token) {
           localStorage.setItem('token', token);
@@ -303,31 +291,21 @@ export const AuthProvider = ({ children }) => {
         } else {
           sessionStorage.setItem('guestUser', JSON.stringify(user));
         }
-        
+
         if (mountedRef.current) {
           setUser(user);
           if (token) setToken(token);
           setError(null);
           setLoading(false);
         }
-        
         return { success: true, user };
       }
     } catch (error) {
-      if (error.response?.status === 409 && error.response?.data?.requiresLogin) {
-        return { 
-          success: false, 
-          requiresLogin: true, 
-          error: error.response.data.message 
-        };
-      }
-
-      // Fallback local si el endpoint no responde o es un entorno de pruebas
       const guestUser = {
         _id: `guest_${Date.now()}`,
         email: email,
         role: 'guest',
-        isGuest: true
+        isGuest: true,
       };
 
       cachedUserData = guestUser;
@@ -338,7 +316,6 @@ export const AuthProvider = ({ children }) => {
         setError(null);
         setLoading(false);
       }
-
       return { success: true, user: guestUser };
     }
   };
@@ -346,22 +323,22 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(() => {
     cachedUserData = null;
     isInitialized = false;
-    
+
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     sessionStorage.removeItem('guestUser');
-    
+
     if (mountedRef.current) {
       setUser(null);
       setToken(null);
       setError(null);
       setLoading(false);
     }
-    
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     if (window.location.pathname !== '/login') {
       window.location.href = '/login';
     }
@@ -381,14 +358,10 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     clearError,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !user?.isGuest,
     isGuest: user?.isGuest || user?.role === 'guest',
-    refetchUser: () => fetchUser(true)
+    refetchUser: () => fetchUser(true),
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

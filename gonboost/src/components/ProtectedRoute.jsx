@@ -1,31 +1,36 @@
-// src/components/ProtectedRoute.jsx - VERSIÓN CORREGIDA
+// src/components/ProtectedRoute.jsx
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useParams } from 'react-router-dom';
 import LoadingSpinner from './LoadingSpinner';
 
-const ProtectedRoute = ({ children, requireAdmin = false }) => {
-  const { user, loading, isAuthenticated } = useAuth();
+const ProtectedRoute = ({ children, requireAdmin = false, allowGuest = false }) => {
+  const { user, loading, isAuthenticated, isGuest } = useAuth();
   const location = useLocation();
+  const { lang } = useParams();
 
+  const currentLang = lang || 'en';
+  const loginPath = currentLang === 'en' ? '/login' : `/${currentLang}/login`;
+
+  // 1. Evitar redirección mientras el estado de autenticación se está inicializando
   if (loading) {
     return <LoadingSpinner text="Verificando autenticación..." />;
   }
 
-  if (!isAuthenticated) {
-    // Redirigir al login guardando la ubicación actual
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  // 2. Si la ruta permite invitados y hay una sesión de invitado activa
+  if (allowGuest && (isAuthenticated || isGuest)) {
+    return children;
   }
 
+  // 3. Redirigir al login si no está autenticado
+  if (!isAuthenticated && !allowGuest) {
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
+  }
+
+  // 4. Verificación de permisos de administrador
   if (requireAdmin && user?.role !== 'admin') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Acceso Denegado</h1>
-          <p className="text-gray-600">No tienes permisos de administrador.</p>
-        </div>
-      </div>
-    );
+    const homePath = currentLang === 'en' ? '/' : `/${currentLang}`;
+    return <Navigate to={homePath} replace />;
   }
 
   return children;

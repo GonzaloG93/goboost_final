@@ -1,4 +1,4 @@
-// App.jsx
+// src/App.jsx
 import React, { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useParams, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -107,11 +107,17 @@ const AdminRoute = ({ children }) => {
 
 // Permite acceso a usuarios autenticados o bien a invitados si allowGuest es true
 const AuthenticatedRoute = ({ children, allowGuest = false }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isGuest } = useAuth();
   const { lang } = useParams();
   const currentLang = lang && SUPPORTED_LANGUAGES.includes(lang) ? lang : DEFAULT_LANGUAGE;
+
   if (loading) return <LoadingSpinner />;
-  if (user || allowGuest) return children;
+
+  // Permite el paso si el usuario está autenticado O si la ruta permite invitados
+  if (user || (allowGuest && isGuest) || allowGuest) {
+    return children;
+  }
+
   const loginPath = currentLang === DEFAULT_LANGUAGE ? '/login' : `/${currentLang}/login`;
   return <Navigate to={loginPath} replace />;
 };
@@ -230,10 +236,13 @@ function AppContent() {
               <Route path="terms-of-service" element={<TermsOfService />} />
               <Route path="privacy" element={<PrivacyPolicy />} />
               <Route path="privacy-policy" element={<PrivacyPolicy />} />
+              
+              {/* Rutas de Compra / Ordenes habilitadas para Invitados */}
               <Route path="order/:serviceId" element={<AuthenticatedRoute allowGuest={true}><Order /></AuthenticatedRoute>} />
               <Route path="checkout/:orderId" element={<AuthenticatedRoute allowGuest={true}><Checkout /></AuthenticatedRoute>} />
-              <Route path="orders/:orderId" element={<AuthenticatedRoute><OrderDetails /></AuthenticatedRoute>} />
-              <Route path="support" element={<AuthenticatedRoute><SupportChat /></AuthenticatedRoute>} />
+              <Route path="orders/:orderId" element={<AuthenticatedRoute allowGuest={true}><OrderDetails /></AuthenticatedRoute>} />
+              
+              <Route path="support" element={<AuthenticatedRoute allowGuest={true}><SupportChat /></AuthenticatedRoute>} />
               <Route path="my-orders" element={<AuthenticatedRoute><MyOrders /></AuthenticatedRoute>} />
               <Route path="dashboard" element={<CustomerRoute><Dashboard /></CustomerRoute>} />
               <Route path="booster/dashboard" element={<BoosterRoute><BoosterDashboard /></BoosterRoute>} />
@@ -251,10 +260,13 @@ function AppContent() {
               <Route path="terms-of-service" element={<TermsOfService />} />
               <Route path="privacy" element={<PrivacyPolicy />} />
               <Route path="privacy-policy" element={<PrivacyPolicy />} />
+              
+              {/* Rutas de Compra / Ordenes habilitadas para Invitados */}
               <Route path="order/:serviceId" element={<AuthenticatedRoute allowGuest={true}><Order /></AuthenticatedRoute>} />
               <Route path="checkout/:orderId" element={<AuthenticatedRoute allowGuest={true}><Checkout /></AuthenticatedRoute>} />
-              <Route path="orders/:orderId" element={<AuthenticatedRoute><OrderDetails /></AuthenticatedRoute>} />
-              <Route path="support" element={<AuthenticatedRoute><SupportChat /></AuthenticatedRoute>} />
+              <Route path="orders/:orderId" element={<AuthenticatedRoute allowGuest={true}><OrderDetails /></AuthenticatedRoute>} />
+              
+              <Route path="support" element={<AuthenticatedRoute allowGuest={true}><SupportChat /></AuthenticatedRoute>} />
               <Route path="my-orders" element={<AuthenticatedRoute><MyOrders /></AuthenticatedRoute>} />
               <Route path="dashboard" element={<CustomerRoute><Dashboard /></CustomerRoute>} />
               <Route path="booster/dashboard" element={<BoosterRoute><BoosterDashboard /></BoosterRoute>} />
